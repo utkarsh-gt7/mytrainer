@@ -1,4 +1,6 @@
-# FitTracker — Body Recomp
+# FitTracker 💪
+
+[![CI/CD Pipeline](https://github.com/utkarsh-gt7/mytrainer/actions/workflows/ci.yml/badge.svg)](https://github.com/utkarsh-gt7/mytrainer/actions/workflows/ci.yml) — Body Recomp
 
 A full-stack fitness tracking application built for body recomposition. Track workouts, log calories with AI-powered food image analysis, monitor body metrics, and view detailed progress analytics.
 

@@ -65,9 +65,12 @@ export default function Progress() {
     }));
 
   /* ─── Dynamic Key Notes Based on Last Week's Data ─── */
+  const todayStr = new Date().toISOString().split('T')[0];
   const keyNotes = useMemo(() => {
     const notes: string[] = [];
-    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    const d = new Date(todayStr);
+    d.setDate(d.getDate() - 7);
+    const weekAgo = d.toISOString().split('T')[0];
     const lastWeekLogs = workoutLogs.filter((l) => l.date >= weekAgo && l.completed);
     const lastWeekCals = calorieLogs.filter((l) => l.date >= weekAgo);
     const avgCals = lastWeekCals.length > 0
@@ -114,7 +117,7 @@ export default function Progress() {
     if (notes.length === 0) notes.push('📝 Start logging workouts and meals to get personalized insights!');
 
     return notes;
-  }, [workoutLogs, calorieLogs, bodyMetrics, profile, totalWorkouts]);
+  }, [workoutLogs, calorieLogs, bodyMetrics, profile, totalWorkouts, todayStr]);
 
   return (
     <div className="space-y-6 animate-fade-in">

@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Dumbbell,
@@ -26,15 +25,12 @@ export default function Dashboard() {
   const todayLog = workoutLogs.find((l) => l.date === todayStr);
   const todayCalories = calorieLogs.find((l) => l.date === todayStr);
 
-  const weekLogs = useMemo(() => {
-    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-    return workoutLogs.filter((l) => l.date >= weekAgo && l.completed);
-  }, [workoutLogs]);
+  const weekAgoDate = new Date(today);
+  weekAgoDate.setDate(weekAgoDate.getDate() - 7);
+  const weekAgoStr = weekAgoDate.toISOString().split('T')[0];
 
-  const weekCalories = useMemo(() => {
-    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-    return calorieLogs.filter((l) => l.date >= weekAgo);
-  }, [calorieLogs]);
+  const weekLogs = workoutLogs.filter((l) => l.date >= weekAgoStr && l.completed);
+  const weekCalories = calorieLogs.filter((l) => l.date >= weekAgoStr);
 
   const avgCalories = weekCalories.length > 0
     ? Math.round(weekCalories.reduce((s, l) => s + l.meals.reduce((ms, m) => ms + m.calories, 0), 0) / weekCalories.length)

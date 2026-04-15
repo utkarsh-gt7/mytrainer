@@ -154,7 +154,8 @@ export default function CalorieTracker() {
                   <Cell fill={MACRO_COLORS.carbs} />
                   <Cell fill={MACRO_COLORS.fat} />
                 </Pie>
-                <Legend formatter={(value: string, entry: any) => `${value}: ${entry?.payload?.grams ?? 0}g`} />
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                <Legend formatter={(value: string, entry: Record<string, any>) => `${value}: ${entry?.payload?.grams ?? 0}g`} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

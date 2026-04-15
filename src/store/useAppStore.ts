@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, type StateStorage, createJSONStorage } from 'zustand/middleware';
 import type {
   WorkoutDay,
   WorkoutLog,
@@ -15,6 +15,63 @@ import type {
 import { defaultWorkoutPlan } from '@/data/defaultPlan';
 import { exerciseDatabase } from '@/data/exercises';
 import { generateId, calculateBMI } from '@/utils/calculations';
+import { isFirebaseConfigured, db, doc, setDoc, getDoc } from '@/services/firebase';
+
+/* ─── Firestore-backed Storage Adapter ─── */
+const FIRESTORE_DOC_PATH = 'appState';
+const FIRESTORE_DOC_ID = 'main';
+
+const firestoreStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    if (!isFirebaseConfigured() || !db) {
+      return localStorage.getItem(name);
+    }
+    try {
+      const snap = await getDoc(doc(db, FIRESTORE_DOC_PATH, FIRESTORE_DOC_ID));
+      if (snap.exists()) {
+        const data = snap.data();
+        return data[name] ? JSON.stringify(data[name]) : null;
+      }
+      return null;
+    } catch (err) {
+      console.error('Firestore getItem failed, falling back to localStorage:', err);
+      return localStorage.getItem(name);
+    }
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    if (!isFirebaseConfigured() || !db) {
+      localStorage.setItem(name, value);
+      return;
+    }
+    try {
+      await setDoc(
+        doc(db, FIRESTORE_DOC_PATH, FIRESTORE_DOC_ID),
+        { [name]: JSON.parse(value) },
+        { merge: true },
+      );
+    } catch (err) {
+      console.error('Firestore setItem failed, falling back to localStorage:', err);
+      localStorage.setItem(name, value);
+    }
+  },
+  removeItem: async (name: string): Promise<void> => {
+    if (!isFirebaseConfigured() || !db) {
+      localStorage.removeItem(name);
+      return;
+    }
+    try {
+      const { deleteField } = await import('firebase/firestore');
+      await setDoc(
+        doc(db, FIRESTORE_DOC_PATH, FIRESTORE_DOC_ID),
+        { [name]: deleteField() },
+        { merge: true },
+      );
+    } catch (err) {
+      console.error('Firestore removeItem failed:', err);
+      localStorage.removeItem(name);
+    }
+  },
+};
 
 /* ─── State Shape ─── */
 interface AppState {
@@ -352,6 +409,7 @@ export const useAppStore = create<AppState>()(
     {
       name: 'fitness-tracker-storage',
       version: 1,
+      storage: createJSONStorage(() => firestoreStorage),
     },
   ),
 );

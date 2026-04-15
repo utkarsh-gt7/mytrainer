@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { User, Sun, Moon, Download, Trash2, Database, Shield } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import { isFirebaseConfigured } from '@/services/firebase';
+import { isFirebaseConfigured, db, doc, deleteDoc } from '@/services/firebase';
 import { isGeminiConfigured } from '@/services/gemini';
 
 export default function Settings() {
@@ -67,8 +67,15 @@ export default function Settings() {
     URL.revokeObjectURL(url);
   };
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     if (window.confirm('Are you sure? This will delete ALL your data including workout logs, metrics, and meal logs. This cannot be undone.')) {
+      if (isFirebaseConfigured() && db) {
+        try {
+          await deleteDoc(doc(db, 'appState', 'main'));
+        } catch (err) {
+          console.error('Failed to clear Firestore data:', err);
+        }
+      }
       localStorage.removeItem('fitness-tracker-storage');
       window.location.reload();
     }

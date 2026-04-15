@@ -11,6 +11,7 @@ import {
   query,
   where,
   orderBy,
+  onSnapshot,
   type DocumentData,
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -105,5 +106,5 @@ export const storageService = {
   },
 };
 
-export { isFirebaseConfigured };
+export { isFirebaseConfigured, db, doc, setDoc, getDoc, deleteDoc, onSnapshot };
 export default { firestoreService, storageService };

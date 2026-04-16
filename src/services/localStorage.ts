@@ -1,33 +1,25 @@
-/* ─── Local Storage persistence layer ─── */
-/* Used as fallback when Firebase is not configured */
-
-const PREFIX = 'ft_';
+const cloudOnlyError = (): never => {
+  throw new Error('Browser localStorage is disabled. This app runs in cloud-only mode.');
+};
 
 export const storage = {
-  get<T>(key: string, fallback: T): T {
-    try {
-      const raw = localStorage.getItem(PREFIX + key);
-      return raw ? (JSON.parse(raw) as T) : fallback;
-    } catch {
-      return fallback;
-    }
+  get<T>(...args: unknown[]): T {
+    void args;
+    return cloudOnlyError();
   },
 
-  set<T>(key: string, value: T): void {
-    try {
-      localStorage.setItem(PREFIX + key, JSON.stringify(value));
-    } catch (error) {
-      console.error('LocalStorage write failed:', error);
-    }
+  set(...args: unknown[]): void {
+    void args;
+    cloudOnlyError();
   },
 
-  remove(key: string): void {
-    localStorage.removeItem(PREFIX + key);
+  remove(...args: unknown[]): void {
+    void args;
+    cloudOnlyError();
   },
 
-  clear(): void {
-    Object.keys(localStorage)
-      .filter((k) => k.startsWith(PREFIX))
-      .forEach((k) => localStorage.removeItem(k));
+  clear(...args: unknown[]): void {
+    void args;
+    cloudOnlyError();
   },
 };

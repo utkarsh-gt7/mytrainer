@@ -76,7 +76,6 @@ export default function Settings() {
           console.error('Failed to clear Firestore data:', err);
         }
       }
-      localStorage.removeItem('fitness-tracker-storage');
       window.location.reload();
     }
   };

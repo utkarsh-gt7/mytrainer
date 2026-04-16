@@ -24,7 +24,7 @@ const FIRESTORE_DOC_ID = 'main';
 const firestoreStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     if (!isFirebaseConfigured() || !db) {
-      return localStorage.getItem(name);
+      throw new Error('Firebase is not configured. Cloud-only persistence requires Firebase.');
     }
     try {
       const snap = await getDoc(doc(db, FIRESTORE_DOC_PATH, FIRESTORE_DOC_ID));
@@ -34,14 +34,13 @@ const firestoreStorage: StateStorage = {
       }
       return null;
     } catch (err) {
-      console.error('Firestore getItem failed, falling back to localStorage:', err);
-      return localStorage.getItem(name);
+      console.error('Firestore getItem failed:', err);
+      throw err;
     }
   },
   setItem: async (name: string, value: string): Promise<void> => {
     if (!isFirebaseConfigured() || !db) {
-      localStorage.setItem(name, value);
-      return;
+      throw new Error('Firebase is not configured. Cloud-only persistence requires Firebase.');
     }
     try {
       await setDoc(
@@ -50,14 +49,13 @@ const firestoreStorage: StateStorage = {
         { merge: true },
       );
     } catch (err) {
-      console.error('Firestore setItem failed, falling back to localStorage:', err);
-      localStorage.setItem(name, value);
+      console.error('Firestore setItem failed:', err);
+      throw err;
     }
   },
   removeItem: async (name: string): Promise<void> => {
     if (!isFirebaseConfigured() || !db) {
-      localStorage.removeItem(name);
-      return;
+      throw new Error('Firebase is not configured. Cloud-only persistence requires Firebase.');
     }
     try {
       const { deleteField } = await import('firebase/firestore');
@@ -68,7 +66,7 @@ const firestoreStorage: StateStorage = {
       );
     } catch (err) {
       console.error('Firestore removeItem failed:', err);
-      localStorage.removeItem(name);
+      throw err;
     }
   },
 };

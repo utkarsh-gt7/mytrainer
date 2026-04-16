@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import ErrorFallback from '@/components/ErrorFallback';
 import Dashboard from '@/pages/Dashboard';
 import TodayWorkout from '@/pages/TodayWorkout';
 import WeeklyPlan from '@/pages/WeeklyPlan';
@@ -9,21 +10,47 @@ import BodyMetrics from '@/pages/BodyMetrics';
 import CalorieTracker from '@/pages/CalorieTracker';
 import Progress from '@/pages/Progress';
 import Settings from '@/pages/Settings';
+import { isFirebaseConfigured } from '@/services/firebase';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function App() {
   const darkMode = useAppStore((s) => s.darkMode);
   const [hydrated, setHydrated] = useState(() => useAppStore.persist.hasHydrated());
+  const [hydrationError, setHydrationError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Wait for Zustand persist to rehydrate from Firestore/localStorage
     const unsub = useAppStore.persist.onFinishHydration(() => setHydrated(true));
+
+    Promise.resolve(useAppStore.persist.rehydrate()).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Unable to load your cloud data.';
+      setHydrationError(message);
+    });
+
     return () => unsub();
   }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
+
+  if (!isFirebaseConfigured()) {
+    return (
+      <ErrorFallback
+        title="Firebase configuration required"
+        message="This app now runs in cloud-only mode. Add your Firebase environment variables and enable Firestore before using it."
+        showReload={false}
+      />
+    );
+  }
+
+  if (hydrationError) {
+    return (
+      <ErrorFallback
+        title="Unable to load cloud data"
+        message={hydrationError}
+      />
+    );
+  }
 
   if (!hydrated) {
     return (

@@ -1,4 +1,16 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+vi.mock('@/services/firebase', () => ({
+  isFirebaseConfigured: () => true,
+  db: {},
+  doc: (...parts: string[]) => parts.join('/'),
+  setDoc: vi.fn().mockResolvedValue(undefined),
+  getDoc: vi.fn().mockResolvedValue({
+    exists: () => false,
+    data: () => ({}),
+  }),
+}));
+
 import { useAppStore } from '@/store/useAppStore';
 
 describe('useAppStore', () => {

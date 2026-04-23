@@ -25,6 +25,7 @@
 
 - [Overview](#-overview)
 - [Features](#-features)
+- [Design System](#-design-system)
 - [High-Level Design](#-high-level-design)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
@@ -73,10 +74,50 @@
 - **Body metrics** with BMI, body fat, and measurement history
 
 ### 🎨 UX
+- **Gym-themed UI** — each section has its own identity (iron-red training, leaf-green nutrition, blueprint-blue metrics, trophy-gold progress, streak-flame orange) driven by a single design system
+- **Oswald display font** with stamped-steel uppercase section banners
+- **Themed navigation** — sidebar and bottom tabs light up in the color of the active section
 - **Dark mode** by default, full light-mode support
 - **Responsive layout** — sidebar on desktop, bottom nav on mobile
 - **Error boundaries** with friendly "Firebase required" / "Reload app" fallbacks
 - **PWA-ready** installable build
+
+---
+
+## 🎨 Design System
+
+Each page has a distinct color identity that matches its purpose — the app feels like a proper gym tool, not a generic SaaS dashboard.
+
+### Palette
+
+| Token | Purpose | Hex (500) |
+|-------|---------|:---------:|
+| `primary` | Iron red — strength / workout / brand | `#ef2b2b` |
+| `nutrition` | Leaf green — meals / macros | `#22ac5c` |
+| `metrics` | Blueprint blue — measurements / analytics | `#2f8dff` |
+| `gold` | Trophy amber — PRs / achievements | `#f0b429` |
+| `flame` | Streak orange — daily consistency | `#f97316` |
+| `iron` | Warm industrial neutrals — surfaces | `#55554c` |
+
+### Per-page identity
+
+| Page | Theme | Signature |
+|------|-------|-----------|
+| **Dashboard** | Red → orange → gold hero | Welcome banner with streak pill and multi-color StatCards |
+| **Today's Workout** | Iron red | Stamped-steel session header, red→flame rest-timer bar, PR sets in gold, green **Complete Workout** action |
+| **Weekly Plan** | Iron charcoal | Day cards with focus-colored left stripes (strength / hypertrophy / athletic) |
+| **Exercise Library** | Graphite | Quiet reference-catalog feel |
+| **Body Metrics** | Blueprint blue | Measurement-style stat tiles, blue weight trend |
+| **Calorie Tracker** | Leaf green | Color-coded macro tiles (protein blue / carbs green / fat gold), green gradient **Add Meal** |
+| **Progress** | Trophy gold | Gold hero, gold-gradient Weekly Insights card, gold PR table |
+| **Settings** | Graphite | Clean neutral surface for personal setup |
+
+### Shared primitives
+
+- [`PageHeader`](./src/components/PageHeader.tsx) — one reusable hero component with 8 theme variants, icon badge, eyebrow, Oswald title and optional action slot
+- `bg-hero-*` gradients, `shadow-glow-*` colored shadows, `bg-grid-iron` subtle grid texture
+- `font-display` Oswald used for titles, numbers and labels; `font-mono` tabular numerals for weights, reps and macros
+- Active route accents on `AppLayout` sidebar + bottom nav match each page's theme color
 
 ---
 
@@ -202,6 +243,7 @@ fitness-tracker/
 │   ├── components/
 │   │   ├── AppErrorBoundary.tsx
 │   │   ├── ErrorFallback.tsx
+│   │   ├── PageHeader.tsx     Themed hero banner (8 variants)
 │   │   └── layout/            AppLayout with sidebar + bottom nav
 │   ├── data/
 │   │   ├── defaultPlan.ts     6-day PPL template
@@ -373,19 +415,20 @@ npm run test:coverage   # with V8 coverage reporter
 | **Test files** | **11 passed** |
 | **Tests** | **164 passed** |
 | **Line coverage** | **🟢 100.00%** |
-| **Statement coverage** | 🟢 98.43% |
-| **Function coverage** | 🟢 99.39% |
-| **Branch coverage** | 🟡 88.05% |
+| **Statement coverage** | 🟢 98.45% |
+| **Function coverage** | 🟢 99.40% |
+| **Branch coverage** | 🟡 87.37% |
 
 ### Per-file coverage
 
 | File | Stmts | Branch | Funcs | Lines |
 |------|:-----:|:------:|:-----:|:-----:|
 | `components/ErrorFallback.tsx` | 100% | 100% | 100% | **100%** |
+| `components/PageHeader.tsx` | 100% | 76.92% | 100% | 100% |
 | `data/defaultPlan.ts` | 100% | 100% | 100% | 100% |
 | `data/exercises.ts` | 100% | 100% | 100% | 100% |
 | `hooks/useRestTimer.ts` | 100% | 100% | 91.66% | 100% |
-| `pages/TodayWorkout.tsx` | 96.00% | 85.58% | 100% | 100% |
+| `pages/TodayWorkout.tsx` | 96.03% | 85.49% | 100% | 100% |
 | `services/firebase.ts` | 100% | 56.25% | 100% | 100% |
 | `services/localStorage.ts` | 100% | 100% | 100% | 100% |
 | `store/useAppStore.ts` | 99.04% | 90.81% | 100% | 100% |

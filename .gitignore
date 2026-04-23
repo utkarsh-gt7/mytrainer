@@ -12,7 +12,16 @@ dist
 dist-ssr
 *.local
 coverage
+
+# Local env files — never commit personal machine values or real secrets here.
+# NOTE: committed env files are allowed and intentional:
+#   - .env.example        → template
+#   - .env.production     → build-time public Firebase web config (safe to commit)
 .env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
 
 # Editor directories and files
 .vscode/*

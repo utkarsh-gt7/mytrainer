@@ -48,6 +48,42 @@ export default function TodayWorkout() {
 
   const activeLog = workoutLogs.find((l) => l.id === activeWorkoutId);
   const completedToday = workoutLogs.find((l) => l.date === todayStr && l.completed);
+  const inProgressToday = workoutLogs.find(
+    (l) => l.date === todayStr && !l.completed,
+  );
+
+  // Track the last in-progress workout we auto-resumed so we only do it once per id.
+  const resumedRef = useRef<string | null>(null);
+
+  /**
+   * Auto-resume an in-progress workout after a page reload. This is the
+   * textbook "initialize local state from an external store on mount" case —
+   * `Date.now()` must run and setState must fire. A ref guard guarantees this
+   * runs exactly once per in-progress workout id.
+   */
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!inProgressToday || activeWorkoutId) return;
+    if (resumedRef.current === inProgressToday.id) return;
+    resumedRef.current = inProgressToday.id;
+
+    setActiveWorkoutId(inProgressToday.id);
+    setIsWorkoutActive(true);
+    setIsEditingCompleted(false);
+    if (inProgressToday.startedAt) {
+      const recovered = Math.max(
+        0,
+        Math.round((Date.now() - inProgressToday.startedAt) / 1000),
+      );
+      setElapsed(recovered);
+    }
+    setExpandedExercise(
+      inProgressToday.exercises[0]?.exerciseId ??
+        todayPlan?.exercises[0]?.exerciseId ??
+        null,
+    );
+  }, [activeWorkoutId, inProgressToday, todayPlan]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -386,8 +422,8 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
 
   const submit = () => {
     const w = parseFloat(weight);
-    const r = parseInt(reps);
-    if (!isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
+    const r = parseInt(reps, 10);
+    if (Number.isFinite(w) && Number.isFinite(r) && w > 0 && r > 0) {
       if (draftTimer.current) clearTimeout(draftTimer.current);
       onLog(w, r);
       setIsEditing(false);

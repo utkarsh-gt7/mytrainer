@@ -21,6 +21,15 @@ vi.mock('firebase/firestore', () => ({
   deleteField: mocks.deleteField,
 }));
 
+vi.mock('@/services/notifier', () => ({
+  notify: {
+    info: vi.fn(),
+    success: vi.fn(),
+    warning: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 import { firestoreStorage } from '@/store/useAppStore';
 
 describe('firestoreStorage', () => {

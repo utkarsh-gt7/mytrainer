@@ -408,30 +408,32 @@ npm run test:watch      # watch mode
 npm run test:coverage   # with V8 coverage reporter
 ```
 
-### Latest run (164 tests · 11 suites)
+### Latest run (176 tests · 13 suites)
 
 | Metric | Result |
 |--------|-------:|
-| **Test files** | **11 passed** |
-| **Tests** | **164 passed** |
-| **Line coverage** | **🟢 100.00%** |
-| **Statement coverage** | 🟢 98.45% |
-| **Function coverage** | 🟢 99.40% |
-| **Branch coverage** | 🟡 87.37% |
+| **Test files** | **13 passed** |
+| **Tests** | **176 passed** |
+| **Line coverage** | **🟢 98.61%** |
+| **Statement coverage** | 🟢 97.28% |
+| **Function coverage** | 🟢 98.39% |
+| **Branch coverage** | 🟡 85.11% |
 
 ### Per-file coverage
 
 | File | Stmts | Branch | Funcs | Lines |
 |------|:-----:|:------:|:-----:|:-----:|
-| `components/ErrorFallback.tsx` | 100% | 100% | 100% | **100%** |
+| `components/ErrorFallback.tsx` | 100% | 80% | 100% | **100%** |
 | `components/PageHeader.tsx` | 100% | 76.92% | 100% | 100% |
+| `components/RouteErrorBoundary.tsx` | 90.90% | 100% | 80% | 90% |
 | `data/defaultPlan.ts` | 100% | 100% | 100% | 100% |
 | `data/exercises.ts` | 100% | 100% | 100% | 100% |
 | `hooks/useRestTimer.ts` | 100% | 100% | 91.66% | 100% |
-| `pages/TodayWorkout.tsx` | 96.03% | 85.49% | 100% | 100% |
+| `pages/TodayWorkout.tsx` | 95.77% | 84.02% | 100% | 100% |
 | `services/firebase.ts` | 100% | 56.25% | 100% | 100% |
 | `services/localStorage.ts` | 100% | 100% | 100% | 100% |
-| `store/useAppStore.ts` | 99.04% | 90.81% | 100% | 100% |
+| `services/notifier.ts` | 100% | 87.50% | 100% | 100% |
+| `store/useAppStore.ts` | 96.77% | 85.57% | 98.90% | 97.19% |
 | `utils/calculations.ts` | 100% | 100% | 100% | 100% |
 | `utils/cn.ts` | 100% | 100% | 100% | 100% |
 
@@ -441,15 +443,17 @@ npm run test:coverage   # with V8 coverage reporter
 
 | Suite | Tests | Focus |
 |-------|:-----:|-------|
-| `store.test.ts` | 52 | Zustand actions, drafts, streaks, PR detection, reopen |
+| `store.test.ts` | 53 | Zustand actions, drafts, streaks, PR detection, reopen, `startedAt` |
 | `calculations.test.ts` | 39 | BMI, BFE, calorie target, protein, formatters |
 | `defaultPlan.test.ts` | 13 | Default PPL plan shape & constraints |
 | `exercises.test.ts` | 11 | Exercise database integrity |
 | `firestoreStorage.test.ts` | 11 | `getItem` / `setItem` / `removeItem` happy & error paths |
 | `setInput.test.tsx` | 11 | Mobile layout, copy-previous, edit-mode, PR trophy |
-| `todayWorkout.test.tsx` | 7 | Full page flow, draft persistence, reopen |
+| `todayWorkout.test.tsx` | 8 | Full page flow, draft persistence, reopen, auto-resume |
 | `cn.test.ts` | 8 | `clsx` + `tailwind-merge` helper |
+| `notifier.test.ts` | 6 | Toast push / dismiss / auto-expire / subscribe |
 | `useRestTimer.test.ts` | 5 | Countdown, pause/resume, reset, progress |
+| `routeErrorBoundary.test.tsx` | 4 | Scoped fallback UI, retry, default label |
 | `localStorage.test.ts` | 4 | Cloud-only stub throws as expected |
 | `app-fallback.test.tsx` | 3 | ErrorFallback SSR + reload click |
 

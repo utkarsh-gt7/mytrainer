@@ -140,6 +140,28 @@ describe('TodayWorkout page', () => {
     expect(useAppStore.getState().workoutLogs[0].completed).toBe(true);
   });
 
+  it('auto-resumes an in-progress workout on reload and recovers elapsed time', () => {
+    const day = useAppStore.getState().workoutPlan.find((d) => d.dayName === todayDayName);
+    if (!day) return;
+    const startedAt = Date.now() - 90_000; // 90 seconds ago
+    useAppStore.setState({
+      workoutLogs: [
+        {
+          id: 'resumable',
+          date: todayStr,
+          dayId: day.id,
+          completed: false,
+          startedAt,
+          exercises: day.exercises.map((e) => ({ exerciseId: e.exerciseId, sets: [] })),
+        },
+      ],
+    });
+    render(<TodayWorkout />);
+    // The active workout flow is visible even though the user never clicked Start.
+    expect(screen.getByRole('button', { name: /complete workout/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^start workout$/i })).not.toBeInTheDocument();
+  });
+
   it('collapses an expanded exercise when its header is tapped again', () => {
     const day = useAppStore.getState().workoutPlan.find((d) => d.dayName === todayDayName);
     if (!day) return;

@@ -76,6 +76,8 @@ export interface WorkoutLog {
   duration?: number;
   notes?: string;
   completed: boolean;
+  /** Unix ms timestamp when the workout was started. Used to resume elapsed time after a reload. */
+  startedAt?: number;
 }
 
 /* ─── Body Metrics ─── */

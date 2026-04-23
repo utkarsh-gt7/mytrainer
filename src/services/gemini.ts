@@ -40,12 +40,43 @@ Return a JSON object with this exact structure (no markdown, just pure JSON):
 }
 Be as accurate as possible with portions visible in the image. If uncertain, lean toward average serving sizes.`;
 
+function sanitizeAnalysis(raw: unknown): FoodAnalysisResult | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const candidate = raw as Partial<FoodAnalysisResult>;
+  if (!Array.isArray(candidate.items)) return null;
+  const items: FoodItem[] = candidate.items
+    .filter((it): it is FoodItem => !!it && typeof it === 'object' && typeof (it as FoodItem).name === 'string')
+    .map((it) => ({
+      name: String(it.name || 'Unknown').slice(0, 120),
+      quantity: String(it.quantity || '1 serving').slice(0, 60),
+      calories: Math.max(0, Math.round(Number(it.calories) || 0)),
+      protein: Math.max(0, Math.round(Number(it.protein) || 0)),
+      carbs: Math.max(0, Math.round(Number(it.carbs) || 0)),
+      fat: Math.max(0, Math.round(Number(it.fat) || 0)),
+    }));
+  if (items.length === 0) return null;
+  return {
+    items,
+    totalCalories: items.reduce((s, i) => s + i.calories, 0),
+    totalProtein: items.reduce((s, i) => s + i.protein, 0),
+    totalCarbs: items.reduce((s, i) => s + i.carbs, 0),
+    totalFat: items.reduce((s, i) => s + i.fat, 0),
+    confidence: candidate.confidence === 'high' || candidate.confidence === 'medium' || candidate.confidence === 'low'
+      ? candidate.confidence
+      : 'low',
+  };
+}
+
 export async function analyzeFoodImage(
   imageFile: File,
 ): Promise<FoodAnalysisResult | null> {
   if (!genAI) {
     console.warn('Gemini API not configured. Set VITE_GEMINI_API_KEY.');
     return getMockAnalysis();
+  }
+  if (!imageFile || !imageFile.type.startsWith('image/')) {
+    console.warn('analyzeFoodImage called with a non-image file.');
+    return null;
   }
 
   try {
@@ -63,7 +94,14 @@ export async function analyzeFoodImage(
     const text = result.response.text();
 
     const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(jsonStr) as FoodAnalysisResult;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      console.error('Gemini returned non-JSON payload:', parseErr);
+      return null;
+    }
+    return sanitizeAnalysis(parsed);
   } catch (error) {
     console.error('Food analysis failed:', error);
     return null;

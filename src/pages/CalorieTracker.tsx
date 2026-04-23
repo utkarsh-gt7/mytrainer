@@ -6,6 +6,7 @@ import { analyzeFoodImage, isGeminiConfigured } from '@/services/gemini';
 import { getDailyCalorieTarget } from '@/utils/calculations';
 import type { FoodItem } from '@/types';
 import PageHeader from '@/components/PageHeader';
+import { notify } from '@/services/notifier';
 
 const MACRO_COLORS = { protein: '#2f8dff', carbs: '#22ac5c', fat: '#f0b429' };
 
@@ -39,40 +40,73 @@ export default function CalorieTracker() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      notify.warning('Not an image', 'Please pick a photo or use the camera.');
+      return;
+    }
+    // Protect the Gemini call from huge uploads.
+    const maxBytes = 8 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      notify.warning('Image too large', 'Please use a photo under 8MB.');
+      return;
+    }
     setAnalyzing(true);
     try {
       const result = await analyzeFoodImage(file);
-      if (result) {
+      if (result && result.items.length > 0) {
         setItems(result.items);
-        setMealName('AI Analyzed Meal');
+        setMealName((prev) => prev || 'AI Analyzed Meal');
+        notify.success('Food analyzed', `${result.items.length} item(s) detected.`);
+      } else {
+        notify.warning('Could not analyze', 'Add the items manually below.');
       }
     } catch (error) {
       console.error('Analysis failed:', error);
+      notify.error('Analysis failed', 'We could not reach the AI service right now.');
+    } finally {
+      setAnalyzing(false);
+      // Allow re-uploading the same file if the user wants to retry.
+      if (e.target) e.target.value = '';
     }
-    setAnalyzing(false);
+  };
+
+  const clampNumber = (raw: string): number => {
+    const n = parseFloat(raw);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    return Math.round(n);
   };
 
   const addManualItem = () => {
-    if (!manualItem.name || !manualItem.calories) return;
+    if (!manualItem.name.trim() || !manualItem.calories) {
+      notify.warning('Missing info', 'Food name and calories are required.');
+      return;
+    }
     setItems((prev) => [...prev, {
-      name: manualItem.name,
+      name: manualItem.name.trim(),
       quantity: manualItem.quantity || '1 serving',
-      calories: parseInt(manualItem.calories) || 0,
-      protein: parseInt(manualItem.protein) || 0,
-      carbs: parseInt(manualItem.carbs) || 0,
-      fat: parseInt(manualItem.fat) || 0,
+      calories: clampNumber(manualItem.calories),
+      protein: clampNumber(manualItem.protein),
+      carbs: clampNumber(manualItem.carbs),
+      fat: clampNumber(manualItem.fat),
     }]);
     setManualItem({ name: '', quantity: '', calories: '', protein: '', carbs: '', fat: '' });
   };
 
   const saveMeal = () => {
-    if (items.length === 0 || !mealName) return;
+    if (items.length === 0) {
+      notify.warning('Add at least one item', 'A meal needs food inside it.');
+      return;
+    }
+    if (!mealName.trim()) {
+      notify.warning('Name your meal', 'e.g. Lunch, Post-workout shake.');
+      return;
+    }
     const totalC = items.reduce((s, i) => s + i.calories, 0);
     const totalP = items.reduce((s, i) => s + i.protein, 0);
     const totalCa = items.reduce((s, i) => s + i.carbs, 0);
     const totalF = items.reduce((s, i) => s + i.fat, 0);
     addMeal(selectedDate, {
-      name: mealName,
+      name: mealName.trim(),
       time: mealTime,
       calories: totalC,
       protein: totalP,
@@ -80,6 +114,7 @@ export default function CalorieTracker() {
       fat: totalF,
       items,
     });
+    notify.success('Meal saved', `${totalC} cal · ${totalP}g protein`);
     setShowMealForm(false);
     setItems([]);
     setMealName('');
@@ -189,9 +224,13 @@ export default function CalorieTracker() {
           </div>
           <input
             type="number"
+            min={0}
             placeholder="0"
             value={todayLog?.steps ?? ''}
-            onChange={(e) => updateSteps(selectedDate, parseInt(e.target.value) || 0)}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              updateSteps(selectedDate, Number.isFinite(n) && n >= 0 ? n : 0);
+            }}
             className="w-full px-2 py-1.5 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm font-mono tabular-nums dark:text-white"
           />
         </div>
@@ -202,9 +241,13 @@ export default function CalorieTracker() {
           </div>
           <input
             type="number"
+            min={0}
             placeholder="0"
             value={todayLog?.cardioMinutes ?? ''}
-            onChange={(e) => updateCardio(selectedDate, parseInt(e.target.value) || 0)}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              updateCardio(selectedDate, Number.isFinite(n) && n >= 0 ? n : 0);
+            }}
             className="w-full px-2 py-1.5 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm font-mono tabular-nums dark:text-white"
           />
         </div>
@@ -215,10 +258,14 @@ export default function CalorieTracker() {
           </div>
           <input
             type="number"
+            min={0}
             step="0.5"
             placeholder="0"
             value={todayLog?.waterLiters ?? ''}
-            onChange={(e) => updateWater(selectedDate, parseFloat(e.target.value) || 0)}
+            onChange={(e) => {
+              const n = parseFloat(e.target.value);
+              updateWater(selectedDate, Number.isFinite(n) && n >= 0 ? n : 0);
+            }}
             className="w-full px-2 py-1.5 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm font-mono tabular-nums dark:text-white"
           />
         </div>

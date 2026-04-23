@@ -16,6 +16,7 @@ import { defaultWorkoutPlan } from '@/data/defaultPlan';
 import { exerciseDatabase } from '@/data/exercises';
 import { generateId, calculateBMI } from '@/utils/calculations';
 import { isFirebaseConfigured, db, doc, setDoc, getDoc } from '@/services/firebase';
+import { notify } from '@/services/notifier';
 
 /* ─── Firestore-backed Storage Adapter ─── */
 const FIRESTORE_DOC_PATH = 'appState';
@@ -50,6 +51,10 @@ export const firestoreStorage: StateStorage = {
       );
     } catch (err) {
       console.error('Firestore setItem failed:', err);
+      notify.error(
+        'Cloud save failed',
+        'Your change is kept locally. Will retry on the next action.',
+      );
       throw err;
     }
   },
@@ -66,6 +71,7 @@ export const firestoreStorage: StateStorage = {
       );
     } catch (err) {
       console.error('Firestore removeItem failed:', err);
+      notify.error('Cloud cleanup failed', 'We could not remove that data from the cloud right now.');
       throw err;
     }
   },
@@ -233,7 +239,7 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           workoutLogs: [
             ...s.workoutLogs,
-            { id, date: today, dayId, exercises, completed: false },
+            { id, date: today, dayId, exercises, completed: false, startedAt: Date.now() },
           ],
         }));
         return id;
@@ -503,8 +509,17 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'fitness-tracker-storage',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => firestoreStorage),
+      /** Safely migrate older persisted payloads so missing fields don't crash the app. */
+      migrate: (persisted, fromVersion) => {
+        const safe = (persisted as Partial<AppState>) ?? {};
+        const migrated: Partial<AppState> = { ...safe };
+        if (fromVersion < 2) {
+          migrated.workoutDrafts = safe.workoutDrafts ?? {};
+        }
+        return migrated as AppState;
+      },
     },
   ),
 );

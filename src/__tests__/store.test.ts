@@ -138,6 +138,17 @@ describe('useAppStore', () => {
       expect(useAppStore.getState().workoutLogs.length).toBe(1);
     });
 
+    it('stamps startedAt on a new workout so reload can recover elapsed time', () => {
+      const before = Date.now();
+      const id = useAppStore.getState().startWorkout('monday');
+      const after = Date.now();
+      const log = useAppStore.getState().workoutLogs.find((l) => l.id === id)!;
+      expect(log.startedAt).toBeDefined();
+      expect(log.startedAt!).toBeGreaterThanOrEqual(before);
+      expect(log.startedAt!).toBeLessThanOrEqual(after);
+      expect(log.completed).toBe(false);
+    });
+
     it('logs a set', () => {
       const id = useAppStore.getState().startWorkout('monday');
       const log = useAppStore.getState().workoutLogs.find((l) => l.id === id)!;

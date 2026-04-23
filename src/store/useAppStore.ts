@@ -21,7 +21,7 @@ import { isFirebaseConfigured, db, doc, setDoc, getDoc } from '@/services/fireba
 const FIRESTORE_DOC_PATH = 'appState';
 const FIRESTORE_DOC_ID = 'main';
 
-const firestoreStorage: StateStorage = {
+export const firestoreStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     if (!isFirebaseConfigured() || !db) {
       throw new Error('Firebase is not configured. Cloud-only persistence requires Firebase.');
@@ -98,9 +98,23 @@ interface AppState {
   workoutLogs: WorkoutLog[];
   startWorkout: (dayId: string) => string;
   logSet: (workoutId: string, exerciseId: string, setNumber: number, weight: number, reps: number) => void;
+  removeSet: (workoutId: string, exerciseId: string, setNumber: number) => void;
   completeWorkout: (workoutId: string, duration: number) => void;
+  reopenWorkout: (workoutId: string) => void;
   getWorkoutLog: (id: string) => WorkoutLog | undefined;
   getTodayWorkout: () => WorkoutLog | undefined;
+
+  /* In-progress Set Drafts (survive page reload) */
+  workoutDrafts: Record<string, Record<string, { weight: string; reps: string }>>;
+  setWorkoutDraft: (
+    workoutId: string,
+    exerciseId: string,
+    setNumber: number,
+    weight: string,
+    reps: string,
+  ) => void;
+  clearWorkoutDraft: (workoutId: string, exerciseId: string, setNumber: number) => void;
+  clearWorkoutDrafts: (workoutId: string) => void;
 
   /* Body Metrics */
   bodyMetrics: BodyMetrics[];
@@ -247,26 +261,51 @@ export const useAppStore = create<AppState>()(
           }
         }
 
+        set((s) => {
+          const draftKey = `${exerciseId}-${setNumber}`;
+          const workoutDrafts = { ...s.workoutDrafts };
+          if (workoutDrafts[workoutId]) {
+            const { [draftKey]: _removed, ...rest } = workoutDrafts[workoutId];
+            void _removed;
+            workoutDrafts[workoutId] = rest;
+            if (Object.keys(rest).length === 0) delete workoutDrafts[workoutId];
+          }
+          return {
+            personalRecords: allPRs,
+            workoutDrafts,
+            workoutLogs: s.workoutLogs.map((log) => {
+              if (log.id !== workoutId) return log;
+              return {
+                ...log,
+                exercises: log.exercises.map((ex) => {
+                  if (ex.exerciseId !== exerciseId) return ex;
+                  const existingIdx = ex.sets.findIndex((s) => s.setNumber === setNumber);
+                  const newSet = { setNumber, weight, reps, isPersonalRecord: isNewPR };
+                  const sets =
+                    existingIdx >= 0
+                      ? ex.sets.map((s, i) => (i === existingIdx ? newSet : s))
+                      : [...ex.sets, newSet];
+                  return { ...ex, sets };
+                }),
+              };
+            }),
+          };
+        });
+      },
+      removeSet: (workoutId, exerciseId, setNumber) =>
         set((s) => ({
-          personalRecords: allPRs,
           workoutLogs: s.workoutLogs.map((log) => {
             if (log.id !== workoutId) return log;
             return {
               ...log,
-              exercises: log.exercises.map((ex) => {
-                if (ex.exerciseId !== exerciseId) return ex;
-                const existingIdx = ex.sets.findIndex((s) => s.setNumber === setNumber);
-                const newSet = { setNumber, weight, reps, isPersonalRecord: isNewPR };
-                const sets =
-                  existingIdx >= 0
-                    ? ex.sets.map((s, i) => (i === existingIdx ? newSet : s))
-                    : [...ex.sets, newSet];
-                return { ...ex, sets };
-              }),
+              exercises: log.exercises.map((ex) =>
+                ex.exerciseId === exerciseId
+                  ? { ...ex, sets: ex.sets.filter((st) => st.setNumber !== setNumber) }
+                  : ex,
+              ),
             };
           }),
-        }));
-      },
+        })),
       completeWorkout: (workoutId, duration) => {
         set((s) => {
           const today = new Date().toISOString().split('T')[0];
@@ -281,19 +320,77 @@ export const useAppStore = create<AppState>()(
           newStreak.longest = Math.max(newStreak.longest, newStreak.current);
           newStreak.lastWorkoutDate = today;
 
+          const workoutDrafts = { ...s.workoutDrafts };
+          delete workoutDrafts[workoutId];
+
           return {
             streak: newStreak,
+            workoutDrafts,
             workoutLogs: s.workoutLogs.map((log) =>
               log.id === workoutId ? { ...log, completed: true, duration } : log,
             ),
           };
         });
       },
+      reopenWorkout: (workoutId) =>
+        set((s) => ({
+          workoutLogs: s.workoutLogs.map((log) =>
+            log.id === workoutId ? { ...log, completed: false } : log,
+          ),
+        })),
       getWorkoutLog: (id) => get().workoutLogs.find((l) => l.id === id),
       getTodayWorkout: () => {
         const today = new Date().toISOString().split('T')[0];
         return get().workoutLogs.find((l) => l.date === today);
       },
+
+      /* ─── In-progress Set Drafts ─── */
+      workoutDrafts: {},
+      setWorkoutDraft: (workoutId, exerciseId, setNumber, weight, reps) =>
+        set((s) => {
+          const key = `${exerciseId}-${setNumber}`;
+          if (!weight && !reps) {
+            const forWorkout = { ...(s.workoutDrafts[workoutId] ?? {}) };
+            delete forWorkout[key];
+            const drafts = { ...s.workoutDrafts };
+            if (Object.keys(forWorkout).length === 0) {
+              delete drafts[workoutId];
+            } else {
+              drafts[workoutId] = forWorkout;
+            }
+            return { workoutDrafts: drafts };
+          }
+          return {
+            workoutDrafts: {
+              ...s.workoutDrafts,
+              [workoutId]: {
+                ...(s.workoutDrafts[workoutId] ?? {}),
+                [key]: { weight, reps },
+              },
+            },
+          };
+        }),
+      clearWorkoutDraft: (workoutId, exerciseId, setNumber) =>
+        set((s) => {
+          if (!s.workoutDrafts[workoutId]) return s;
+          const key = `${exerciseId}-${setNumber}`;
+          const forWorkout = { ...s.workoutDrafts[workoutId] };
+          delete forWorkout[key];
+          const drafts = { ...s.workoutDrafts };
+          if (Object.keys(forWorkout).length === 0) {
+            delete drafts[workoutId];
+          } else {
+            drafts[workoutId] = forWorkout;
+          }
+          return { workoutDrafts: drafts };
+        }),
+      clearWorkoutDrafts: (workoutId) =>
+        set((s) => {
+          if (!s.workoutDrafts[workoutId]) return s;
+          const drafts = { ...s.workoutDrafts };
+          delete drafts[workoutId];
+          return { workoutDrafts: drafts };
+        }),
 
       /* ─── Body Metrics ─── */
       bodyMetrics: [],

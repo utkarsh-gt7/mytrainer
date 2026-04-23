@@ -1,8 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import ErrorFallback from '@/components/ErrorFallback';
 
 describe('ErrorFallback', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it('renders Firebase configuration guidance', () => {
     const html = renderToStaticMarkup(
       <ErrorFallback
@@ -27,5 +32,20 @@ describe('ErrorFallback', () => {
 
     expect(html).toContain('Something went wrong');
     expect(html).toContain('Reload app');
+  });
+
+  it('invokes window.location.reload when the reload button is clicked', () => {
+    const reload = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...original, reload },
+    });
+
+    render(<ErrorFallback title="Boom" message="Reload please" />);
+    fireEvent.click(screen.getByRole('button', { name: /reload app/i }));
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(window, 'location', { configurable: true, value: original });
   });
 });

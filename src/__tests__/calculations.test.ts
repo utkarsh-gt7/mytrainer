@@ -107,6 +107,16 @@ describe('getDailyCalorieTarget', () => {
     const cut = { ...base, goal: 'cut' as const };
     expect(getDailyCalorieTarget(cut, true)).toBe(1800);
   });
+
+  it('falls back to maintenance for an unknown goal', () => {
+    const odd = { ...base, goal: 'unknown' as unknown as UserProfile['goal'] };
+    expect(getDailyCalorieTarget(odd, true)).toBe(2300);
+  });
+
+  it('derives maintenance when none is stored on profile', () => {
+    const noMaint = { ...base, maintenanceCalories: 0 };
+    expect(getDailyCalorieTarget(noMaint, true)).toBeGreaterThan(0);
+  });
 });
 
 describe('getProteinTarget', () => {

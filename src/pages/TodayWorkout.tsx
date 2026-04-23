@@ -1,5 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Check, Timer, Trophy, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  Check,
+  Timer,
+  Trophy,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  ArrowDown,
+  X,
+} from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { getExerciseById } from '@/data/exercises';
 import { useRestTimer } from '@/hooks/useRestTimer';
@@ -9,7 +21,16 @@ import { cn } from '@/utils/cn';
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function TodayWorkout() {
-  const { workoutPlan, startWorkout, logSet, completeWorkout, workoutLogs } = useAppStore();
+  const {
+    workoutPlan,
+    startWorkout,
+    logSet,
+    completeWorkout,
+    reopenWorkout,
+    workoutLogs,
+    workoutDrafts,
+    setWorkoutDraft,
+  } = useAppStore();
   const timer = useRestTimer();
 
   const today = new Date();
@@ -20,6 +41,7 @@ export default function TodayWorkout() {
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
+  const [isEditingCompleted, setIsEditingCompleted] = useState(false);
 
   const activeLog = workoutLogs.find((l) => l.id === activeWorkoutId);
   const completedToday = workoutLogs.find((l) => l.date === todayStr && l.completed);
@@ -45,6 +67,17 @@ export default function TodayWorkout() {
     completeWorkout(activeWorkoutId, elapsed);
     setIsWorkoutActive(false);
     setActiveWorkoutId(null);
+    setIsEditingCompleted(false);
+  };
+
+  const handleEditCompletedWorkout = () => {
+    if (!completedToday) return;
+    reopenWorkout(completedToday.id);
+    setActiveWorkoutId(completedToday.id);
+    setIsWorkoutActive(true);
+    setIsEditingCompleted(true);
+    setElapsed(completedToday.duration ?? 0);
+    setExpandedExercise(completedToday.exercises[0]?.exerciseId ?? todayPlan?.exercises[0]?.exerciseId ?? null);
   };
 
   if (!todayPlan) {
@@ -73,6 +106,14 @@ export default function TodayWorkout() {
               Duration: {formatDuration(completedToday.duration)}
             </p>
           )}
+          <button
+            type="button"
+            onClick={handleEditCompletedWorkout}
+            aria-label="Edit today's workout"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary-500 text-white hover:bg-primary-600 transition-colors"
+          >
+            <Pencil size={16} /> Edit Workout
+          </button>
         </div>
         <div className="mt-6 space-y-3">
           {completedToday.exercises.map((ex) => {
@@ -174,6 +215,7 @@ export default function TodayWorkout() {
           const loggedEx = activeLog?.exercises.find((e) => e.exerciseId === planEx.exerciseId);
           const isExpanded = expandedExercise === planEx.exerciseId;
           const completedSets = loggedEx?.sets.length ?? 0;
+          const draftsForWorkout = activeWorkoutId ? workoutDrafts[activeWorkoutId] ?? {} : {};
 
           return (
             <div
@@ -184,16 +226,16 @@ export default function TodayWorkout() {
                 onClick={() => setExpandedExercise(isExpanded ? null : planEx.exerciseId)}
                 className="w-full p-4 flex items-center justify-between text-left"
               >
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center text-sm font-bold">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center text-sm font-bold flex-shrink-0">
                     {planEx.order}
                   </span>
-                  <div>
-                    <p className="font-medium dark:text-white">{exercise?.name}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium dark:text-white truncate">{exercise?.name}</p>
                     <p className="text-xs text-gray-500">{planEx.targetSets} × {planEx.targetReps}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {completedSets > 0 && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
                       {completedSets}/{planEx.targetSets}
@@ -205,15 +247,25 @@ export default function TodayWorkout() {
               </button>
 
               {isExpanded && isWorkoutActive && (
-                <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-800">
+                <div className="px-3 sm:px-4 pb-4 border-t border-gray-100 dark:border-gray-800">
                   <div className="mt-3 space-y-2">
                     {Array.from({ length: planEx.targetSets }, (_, i) => i + 1).map((setNum) => {
                       const logged = loggedEx?.sets.find((s) => s.setNumber === setNum);
+                      const previous = loggedEx?.sets.find((s) => s.setNumber === setNum - 1);
+                      const draftKey = `${planEx.exerciseId}-${setNum}`;
+                      const draft = draftsForWorkout[draftKey];
                       return (
                         <SetInput
                           key={setNum}
                           setNumber={setNum}
                           logged={logged}
+                          previous={previous}
+                          draft={draft}
+                          onDraftChange={(weight, reps) => {
+                            if (activeWorkoutId) {
+                              setWorkoutDraft(activeWorkoutId, planEx.exerciseId, setNum, weight, reps);
+                            }
+                          }}
                           onLog={(weight, reps) => {
                             if (activeWorkoutId) {
                               logSet(activeWorkoutId, planEx.exerciseId, setNum, weight, reps);
@@ -237,65 +289,163 @@ export default function TodayWorkout() {
           onClick={handleCompleteWorkout}
           className="w-full py-4 rounded-2xl bg-green-500 text-white font-semibold text-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
         >
-          <Check size={22} /> Complete Workout
+          <Check size={22} /> {isEditingCompleted ? 'Save Changes' : 'Complete Workout'}
         </button>
       )}
     </div>
   );
 }
 
-function SetInput({
-  setNumber,
-  logged,
-  onLog,
-}: {
+interface SetInputProps {
   setNumber: number;
   logged?: { weight: number; reps: number; isPersonalRecord?: boolean };
+  previous?: { weight: number; reps: number };
+  draft?: { weight: string; reps: string };
   onLog: (weight: number, reps: number) => void;
-}) {
-  const [weight, setWeight] = useState(logged?.weight?.toString() ?? '');
-  const [reps, setReps] = useState(logged?.reps?.toString() ?? '');
+  onDraftChange?: (weight: string, reps: string) => void;
+}
+
+export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftChange }: SetInputProps) {
+  const initialWeight =
+    draft?.weight ?? (logged?.weight !== undefined ? logged.weight.toString() : '');
+  const initialReps = draft?.reps ?? (logged?.reps !== undefined ? logged.reps.toString() : '');
+
+  const [weight, setWeight] = useState(initialWeight);
+  const [reps, setReps] = useState(initialReps);
+  const [isEditing, setIsEditing] = useState(false);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+    };
+  }, []);
+
+  const scheduleDraft = (nextWeight: string, nextReps: string) => {
+    if (!onDraftChange) return;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => {
+      onDraftChange(nextWeight, nextReps);
+    }, 350);
+  };
+
+  const submit = () => {
+    const w = parseFloat(weight);
+    const r = parseInt(reps);
+    if (!isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+      onLog(w, r);
+      setIsEditing(false);
+    }
+  };
+
+  const copyPrevious = () => {
+    if (!previous) return;
+    const nextW = previous.weight.toString();
+    const nextR = previous.reps.toString();
+    setWeight(nextW);
+    setReps(nextR);
+    scheduleDraft(nextW, nextR);
+  };
+
+  const cancelEdit = () => {
+    if (!logged) return;
+    setWeight(logged.weight.toString());
+    setReps(logged.reps.toString());
+    setIsEditing(false);
+  };
+
+  const readOnly = !!logged && !isEditing;
+  const canCopyPrevious = !readOnly && !!previous && !weight && !reps;
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-8 text-center text-sm font-medium text-gray-400">S{setNumber}</span>
+    <div className="flex items-center gap-1.5 sm:gap-2">
+      <span className="w-7 sm:w-8 text-center text-xs sm:text-sm font-medium text-gray-400 flex-shrink-0">
+        S{setNumber}
+      </span>
       <input
         type="number"
+        inputMode="decimal"
         placeholder="kg"
+        aria-label={`Set ${setNumber} weight`}
         value={weight}
-        onChange={(e) => setWeight(e.target.value)}
-        className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+        readOnly={readOnly}
+        onChange={(e) => {
+          const v = e.target.value;
+          setWeight(v);
+          scheduleDraft(v, reps);
+        }}
+        className="flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-60"
       />
       <input
         type="number"
+        inputMode="numeric"
         placeholder="reps"
+        aria-label={`Set ${setNumber} reps`}
         value={reps}
-        onChange={(e) => setReps(e.target.value)}
-        className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-      />
-      <button
-        onClick={() => {
-          const w = parseFloat(weight);
-          const r = parseInt(reps);
-          if (!isNaN(w) && !isNaN(r) && w > 0 && r > 0) onLog(w, r);
+        readOnly={readOnly}
+        onChange={(e) => {
+          const v = e.target.value;
+          setReps(v);
+          scheduleDraft(weight, v);
         }}
-        disabled={!!logged}
-        className={cn(
-          'p-2 rounded-lg transition-colors',
-          logged
-            ? 'bg-green-100 dark:bg-green-900/30 text-green-500'
-            : 'bg-primary-500 text-white hover:bg-primary-600',
-        )}
-      >
-        {logged ? (
-          <>
+        className="flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-60"
+      />
+
+      {canCopyPrevious && (
+        <button
+          type="button"
+          onClick={copyPrevious}
+          aria-label={`Copy values from set ${setNumber - 1}`}
+          title={`Copy ${previous?.weight}kg × ${previous?.reps} from S${setNumber - 1}`}
+          className="shrink-0 p-2 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+        >
+          <ArrowDown size={16} />
+        </button>
+      )}
+
+      {readOnly ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            aria-label={`Edit set ${setNumber}`}
+            className="shrink-0 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            type="button"
+            disabled
+            aria-label={`Set ${setNumber} logged`}
+            className="shrink-0 p-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-500 flex items-center"
+          >
             <Check size={16} />
-            {logged.isPersonalRecord && <Trophy size={12} className="text-yellow-400" />}
-          </>
-        ) : (
-          <Check size={16} />
-        )}
-      </button>
+            {logged?.isPersonalRecord && <Trophy size={12} className="text-yellow-400 ml-0.5" />}
+          </button>
+        </>
+      ) : (
+        <>
+          {isEditing && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              aria-label={`Cancel editing set ${setNumber}`}
+              className="shrink-0 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={submit}
+            aria-label={isEditing ? `Save set ${setNumber}` : `Log set ${setNumber}`}
+            className="shrink-0 p-2 rounded-lg transition-colors bg-primary-500 text-white hover:bg-primary-600"
+          >
+            <Check size={16} />
+          </button>
+        </>
+      )}
     </div>
   );
 }

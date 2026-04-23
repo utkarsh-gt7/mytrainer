@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Scale, TrendingUp, TrendingDown, Camera, Plus } from 'lucide-react';
+import { Scale, TrendingUp, TrendingDown, Camera, Plus, Ruler } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAppStore } from '@/store/useAppStore';
 import { calculateBMI, getBMICategory } from '@/utils/calculations';
 import type { BodyMeasurements } from '@/types';
+import PageHeader from '@/components/PageHeader';
 
 export default function BodyMetrics() {
   const { bodyMetrics, addBodyMetrics, profile } = useAppStore();
@@ -64,53 +65,55 @@ export default function BodyMetrics() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold dark:text-white">Body Metrics</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Track your body composition weekly</p>
-        </div>
+      <PageHeader
+        theme="metrics"
+        icon={Ruler}
+        eyebrow="Body Composition"
+        title="Body Metrics"
+        subtitle="Measure weekly, adjust smarter. The tape measure doesn't lie."
+      >
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-sm text-white text-sm font-semibold transition-colors"
         >
           <Plus size={16} /> Log Metrics
         </button>
-      </div>
+      </PageHeader>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-          <Scale size={18} className="text-blue-500 mb-2" />
-          <p className="text-2xl font-bold dark:text-white">{latest?.weight ?? profile.weight} kg</p>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-metrics-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4">
+          <Scale size={18} className="text-metrics-500 mb-2" />
+          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">{latest?.weight ?? profile.weight} kg</p>
           {weightChange !== 0 && (
-            <p className={`text-xs flex items-center gap-1 mt-1 ${weightChange > 0 ? 'text-red-500' : 'text-green-500'}`}>
+            <p className={`text-xs flex items-center gap-1 mt-1 font-mono ${weightChange > 0 ? 'text-primary-500' : 'text-nutrition-500'}`}>
               {weightChange > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
               {weightChange > 0 ? '+' : ''}{weightChange} kg
             </p>
           )}
-          <p className="text-xs text-gray-500 mt-0.5">Weight</p>
+          <p className="text-[10px] uppercase tracking-wider text-iron-500 mt-0.5">Weight</p>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-          <p className="text-2xl font-bold dark:text-white">{currentBMI}</p>
-          <p className="text-xs text-gray-500">{getBMICategory(currentBMI)}</p>
-          <p className="text-xs text-gray-400 mt-0.5">BMI</p>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 p-4">
+          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">{currentBMI}</p>
+          <p className="text-xs text-iron-500">{getBMICategory(currentBMI)}</p>
+          <p className="text-[10px] uppercase tracking-wider text-iron-400 mt-0.5">BMI</p>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-          <p className="text-2xl font-bold dark:text-white">
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 p-4">
+          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">
             {latest?.bodyFat ?? profile.bodyFat ?? '—'}%
           </p>
-          <p className="text-xs text-gray-500">Body Fat</p>
+          <p className="text-[10px] uppercase tracking-wider text-iron-500">Body Fat</p>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-          <p className="text-2xl font-bold dark:text-white">{bodyMetrics.length}</p>
-          <p className="text-xs text-gray-500">Check-ins</p>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 p-4">
+          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">{bodyMetrics.length}</p>
+          <p className="text-[10px] uppercase tracking-wider text-iron-500">Check-ins</p>
         </div>
       </div>
 
       {/* Chart */}
       {chartData.length > 1 && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-          <h3 className="font-semibold dark:text-white mb-4">Weight Trend</h3>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 p-4 sm:p-6">
+          <h3 className="font-display text-sm uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300 mb-4">Weight Trend</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
@@ -119,7 +122,7 @@ export default function BodyMetrics() {
               <Tooltip
                 contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }}
               />
-              <Line type="monotone" dataKey="weight" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="weight" stroke="#2f8dff" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>

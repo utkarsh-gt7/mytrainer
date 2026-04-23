@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { User, Sun, Moon, Download, Trash2, Database, Shield } from 'lucide-react';
+import { User, Sun, Moon, Download, Trash2, Database, Shield, Settings as SettingsIcon } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { isFirebaseConfigured, db, doc, deleteDoc } from '@/services/firebase';
 import { isGeminiConfigured } from '@/services/gemini';
+import PageHeader from '@/components/PageHeader';
 
 export default function Settings() {
   const { profile, updateProfile, darkMode, toggleDarkMode, workoutLogs, calorieLogs, bodyMetrics } = useAppStore();
@@ -82,7 +83,13 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-2xl">
-      <h1 className="text-xl sm:text-2xl font-bold dark:text-white">Settings</h1>
+      <PageHeader
+        theme="settings"
+        icon={SettingsIcon}
+        eyebrow="Personal Setup"
+        title="Settings"
+        subtitle="Tune your profile, theme and cloud data — all in one place."
+      />
 
       {/* Theme */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Plus, Trash2, GripVertical, Search, X } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Search, X, CalendarDays } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { getExerciseById, searchExercises } from '@/data/exercises';
 import { cn } from '@/utils/cn';
 import type { Exercise } from '@/types';
+import PageHeader from '@/components/PageHeader';
 
 export default function WeeklyPlan() {
   const { workoutPlan, addExerciseToDay, removeExerciseFromDay, exercises } = useAppStore();
@@ -24,19 +25,26 @@ export default function WeeklyPlan() {
   };
 
   const focusColors: Record<string, string> = {
-    strength: 'border-l-red-500',
-    hypertrophy: 'border-l-blue-500',
-    athletic: 'border-l-green-500',
+    strength: 'border-l-primary-500',
+    hypertrophy: 'border-l-metrics-500',
+    athletic: 'border-l-nutrition-500',
+  };
+
+  const focusBadge: Record<string, string> = {
+    strength: 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-900/60',
+    hypertrophy: 'bg-metrics-100 dark:bg-metrics-900/30 text-metrics-700 dark:text-metrics-300 border-metrics-200 dark:border-metrics-900/60',
+    athletic: 'bg-nutrition-100 dark:bg-nutrition-900/30 text-nutrition-700 dark:text-nutrition-300 border-nutrition-200 dark:border-nutrition-900/60',
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold dark:text-white">Weekly Plan</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-          Tap any day to add, remove or reorder exercises
-        </p>
-      </div>
+      <PageHeader
+        theme="plan"
+        icon={CalendarDays}
+        eyebrow="Training Split"
+        title="Weekly Plan"
+        subtitle="Six days of programmed work. Tap any card to tweak exercises, sets and reps."
+      />
 
       <div className="grid gap-4">
         {workoutPlan.map((day) => {
@@ -45,17 +53,22 @@ export default function WeeklyPlan() {
             <div
               key={day.id}
               className={cn(
-                'bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 border-l-4 overflow-hidden',
-                focusColors[day.focus] ?? 'border-l-gray-400',
+                'bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 border-l-4 overflow-hidden',
+                focusColors[day.focus] ?? 'border-l-iron-400',
               )}
             >
               <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold dark:text-white">
-                      {day.dayName} — {day.label}
+                    <h3 className="font-display text-lg uppercase tracking-wide font-bold dark:text-white">
+                      {day.dayName} <span className="text-iron-400">—</span> {day.label}
                     </h3>
-                    <p className="text-xs text-gray-500 capitalize">{day.focus} • {totalSets} sets</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={cn('inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-semibold border', focusBadge[day.focus])}>
+                        {day.focus}
+                      </span>
+                      <span className="text-xs font-mono text-iron-500 tabular-nums">{totalSets} sets</span>
+                    </div>
                   </div>
                   <button
                     onClick={() => setAddingTo(addingTo === day.id ? null : day.id)}

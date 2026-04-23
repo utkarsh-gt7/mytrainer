@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, X, Dumbbell } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, X, Dumbbell, Library } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/utils/cn';
 import type { Exercise, MuscleGroup, Equipment } from '@/types';
 import { generateId } from '@/utils/calculations';
+import PageHeader from '@/components/PageHeader';
 
 const MUSCLE_GROUPS: MuscleGroup[] = [
   'chest', 'back', 'shoulders', 'side_delts', 'rear_delts', 'biceps', 'triceps',
@@ -68,22 +69,24 @@ export default function ExerciseLibrary() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold dark:text-white">Exercise Library</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">{exercises.length} exercises</p>
-        </div>
+      <PageHeader
+        theme="library"
+        icon={Library}
+        eyebrow="Reference Catalog"
+        title="Exercise Library"
+        subtitle={`${exercises.length} movements — every tool in the rack.`}
+      >
         <button
           onClick={() => {
             setShowForm(true);
             setEditingId(null);
             setFormData({ name: '', muscleGroups: [], equipment: 'barbell', notes: '' });
           }}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-sm text-white text-sm font-semibold transition-colors"
         >
           <Plus size={16} /> <span className="hidden sm:inline">Add Exercise</span><span className="sm:hidden">Add</span>
         </button>
-      </div>
+      </PageHeader>
 
       {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-3">

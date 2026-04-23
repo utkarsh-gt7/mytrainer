@@ -11,12 +11,15 @@ import {
   Pencil,
   ArrowDown,
   X,
+  Dumbbell,
+  Flame,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { getExerciseById } from '@/data/exercises';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { formatDuration } from '@/utils/calculations';
 import { cn } from '@/utils/cn';
+import PageHeader from '@/components/PageHeader';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -82,54 +85,81 @@ export default function TodayWorkout() {
 
   if (!todayPlan) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in">
-        <div className="text-6xl mb-4">🎉</div>
-        <h2 className="text-2xl font-bold dark:text-white mb-2">Rest Day!</h2>
-        <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
-          Recovery is part of the process. Focus on nutrition, sleep, and light walking today.
-        </p>
+      <div className="space-y-6 animate-fade-in">
+        <PageHeader
+          theme="workout"
+          icon={Dumbbell}
+          eyebrow={dayName}
+          title="Rest Day"
+          subtitle="Recovery is part of the program. Prioritize protein, sleep, and a light walk — you earned it."
+        />
+        <div className="rounded-2xl border border-iron-200/60 dark:border-iron-800 bg-white dark:bg-iron-900/60 p-6 text-center">
+          <Flame className="mx-auto text-flame-500 mb-3" size={36} />
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Come back tomorrow — gains are built between sessions.
+          </p>
+        </div>
       </div>
     );
   }
 
   if (completedToday && !activeWorkoutId) {
     return (
-      <div className="animate-fade-in">
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-8 text-center">
-          <Check className="mx-auto text-green-500 mb-3" size={48} />
-          <h2 className="text-2xl font-bold dark:text-white mb-2">Workout Complete! 💪</h2>
-          <p className="text-gray-500 dark:text-gray-400">
-            {todayPlan.dayName} — {todayPlan.label} ({todayPlan.focus})
-          </p>
-          {completedToday.duration && (
-            <p className="text-sm text-gray-400 mt-1">
-              Duration: {formatDuration(completedToday.duration)}
-            </p>
-          )}
+      <div className="space-y-6 animate-fade-in">
+        <PageHeader
+          theme="workout"
+          icon={Dumbbell}
+          eyebrow={`${todayPlan.dayName} · ${todayPlan.focus.toUpperCase()}`}
+          title={todayPlan.label}
+          subtitle="Logged and locked in. Great work."
+        >
           <button
             type="button"
             onClick={handleEditCompletedWorkout}
             aria-label="Edit today's workout"
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary-500 text-white hover:bg-primary-600 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-sm text-white transition-colors"
           >
             <Pencil size={16} /> Edit Workout
           </button>
+        </PageHeader>
+
+        <div className="rounded-2xl border border-nutrition-200 dark:border-nutrition-900/50 bg-gradient-to-br from-nutrition-50 to-white dark:from-nutrition-900/20 dark:to-iron-900/40 p-6 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-nutrition-500 text-white flex items-center justify-center flex-shrink-0">
+            <Check size={24} strokeWidth={3} />
+          </div>
+          <div className="min-w-0">
+            <p className="font-display uppercase tracking-wide text-lg font-bold text-nutrition-700 dark:text-nutrition-300">
+              Workout Complete
+            </p>
+            {completedToday.duration && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Time under iron: <span className="font-mono font-semibold">{formatDuration(completedToday.duration)}</span>
+              </p>
+            )}
+          </div>
         </div>
-        <div className="mt-6 space-y-3">
+
+        <div className="space-y-3">
           {completedToday.exercises.map((ex) => {
             const exercise = getExerciseById(ex.exerciseId);
             return (
-              <div key={ex.exerciseId} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-                <p className="font-medium dark:text-white">{exercise?.name}</p>
+              <div
+                key={ex.exerciseId}
+                className="bg-white dark:bg-iron-900/60 rounded-xl border border-iron-200/60 dark:border-iron-800 p-4"
+              >
+                <div className="flex items-center gap-2">
+                  <Dumbbell size={14} className="text-primary-500" />
+                  <p className="font-semibold dark:text-white">{exercise?.name}</p>
+                </div>
                 <div className="mt-2 flex gap-2 flex-wrap">
                   {ex.sets.map((s) => (
                     <span
                       key={s.setNumber}
                       className={cn(
-                        'px-2 py-1 rounded text-xs font-mono',
+                        'px-2.5 py-1 rounded-md text-xs font-mono font-semibold border',
                         s.isPersonalRecord
-                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
+                          ? 'bg-gold-100 dark:bg-gold-900/20 text-gold-800 dark:text-gold-300 border-gold-300 dark:border-gold-800'
+                          : 'bg-iron-50 dark:bg-iron-800/70 text-iron-700 dark:text-iron-200 border-iron-200 dark:border-iron-700',
                       )}
                     >
                       {s.weight}kg × {s.reps} {s.isPersonalRecord && '🏆'}
@@ -146,51 +176,54 @@ export default function TodayWorkout() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold dark:text-white truncate">
-            {todayPlan.dayName} — {todayPlan.label}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{todayPlan.focus} Focus</p>
-        </div>
+      <PageHeader
+        theme="workout"
+        icon={Dumbbell}
+        eyebrow={`${todayPlan.dayName} · ${todayPlan.focus.toUpperCase()}`}
+        title={todayPlan.label}
+        subtitle={isWorkoutActive ? 'Session in progress — lock every rep in.' : 'Time to move some iron.'}
+      >
         {isWorkoutActive && (
-          <div className="text-right flex-shrink-0">
-            <p className="text-xl sm:text-2xl font-mono font-bold text-primary-500">{formatDuration(elapsed)}</p>
-            <p className="text-xs text-gray-500">elapsed</p>
+          <div className="text-right">
+            <p className="text-2xl sm:text-3xl font-mono font-bold tracking-tight text-white">{formatDuration(elapsed)}</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/70">elapsed</p>
           </div>
         )}
-      </div>
+      </PageHeader>
 
       {/* Rest Timer */}
       {timer.seconds > 0 && (
-        <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4">
+        <div className="relative overflow-hidden rounded-2xl border border-primary-200 dark:border-primary-900/60 bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/20 dark:to-iron-900/50 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Timer className="text-primary-500" size={20} />
-              <span className="font-semibold dark:text-white">Rest Timer</span>
+              <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center">
+                <Timer size={16} />
+              </div>
+              <span className="font-display uppercase tracking-wide text-sm font-semibold dark:text-white">
+                Rest Timer
+              </span>
             </div>
-            <span className="text-2xl font-mono font-bold text-primary-500">
+            <span className="text-2xl font-mono font-bold text-primary-600 dark:text-primary-300 tabular-nums">
               {formatDuration(timer.seconds)}
             </span>
           </div>
-          <div className="mt-2 h-2 bg-primary-100 dark:bg-primary-900/40 rounded-full overflow-hidden">
+          <div className="mt-3 h-2 bg-primary-100 dark:bg-iron-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary-500 rounded-full transition-all duration-1000"
+              className="h-full bg-gradient-to-r from-primary-500 to-flame-500 rounded-full transition-all duration-1000"
               style={{ width: `${timer.progress}%` }}
             />
           </div>
           <div className="flex gap-2 mt-3">
             <button
               onClick={timer.isRunning ? timer.pause : timer.resume}
-              className="flex-1 py-1.5 rounded-lg text-sm font-medium bg-primary-500 text-white hover:bg-primary-600"
+              className="flex-1 py-1.5 rounded-lg text-sm font-semibold bg-primary-500 text-white hover:bg-primary-600 shadow-glow-primary"
             >
               {timer.isRunning ? <Pause size={14} className="inline mr-1" /> : <Play size={14} className="inline mr-1" />}
               {timer.isRunning ? 'Pause' : 'Resume'}
             </button>
             <button
               onClick={timer.reset}
-              className="py-1.5 px-3 rounded-lg text-sm font-medium bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
+              className="py-1.5 px-3 rounded-lg text-sm font-medium bg-iron-200 dark:bg-iron-700 hover:bg-iron-300 dark:hover:bg-iron-600 dark:text-white"
             >
               <RotateCcw size={14} />
             </button>
@@ -202,9 +235,9 @@ export default function TodayWorkout() {
       {!isWorkoutActive && !activeWorkoutId && (
         <button
           onClick={handleStartWorkout}
-          className="w-full py-4 rounded-2xl bg-primary-500 text-white font-semibold text-lg hover:bg-primary-600 transition-colors flex items-center justify-center gap-2"
+          className="group w-full py-4 rounded-2xl bg-gradient-to-r from-primary-600 via-primary-500 to-flame-500 text-white font-display text-xl uppercase tracking-[0.15em] hover:shadow-glow-primary transition-all flex items-center justify-center gap-3"
         >
-          <Play size={22} /> Start Workout
+          <Play size={24} strokeWidth={2.5} /> Start Workout
         </button>
       )}
 
@@ -215,39 +248,61 @@ export default function TodayWorkout() {
           const loggedEx = activeLog?.exercises.find((e) => e.exerciseId === planEx.exerciseId);
           const isExpanded = expandedExercise === planEx.exerciseId;
           const completedSets = loggedEx?.sets.length ?? 0;
+          const isDone = completedSets >= planEx.targetSets;
           const draftsForWorkout = activeWorkoutId ? workoutDrafts[activeWorkoutId] ?? {} : {};
 
           return (
             <div
               key={planEx.id}
-              className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+              className={cn(
+                'bg-white dark:bg-iron-900/60 rounded-xl border overflow-hidden transition-colors',
+                isDone
+                  ? 'border-nutrition-300 dark:border-nutrition-900/60'
+                  : 'border-iron-200/60 dark:border-iron-800',
+              )}
             >
               <button
                 onClick={() => setExpandedExercise(isExpanded ? null : planEx.exerciseId)}
                 className="w-full p-4 flex items-center justify-between text-left"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  <span
+                    className={cn(
+                      'w-8 h-8 rounded-lg flex items-center justify-center text-sm font-display font-bold flex-shrink-0 border',
+                      isDone
+                        ? 'bg-nutrition-500 text-white border-nutrition-600'
+                        : 'bg-primary-500 text-white border-primary-600',
+                    )}
+                  >
                     {planEx.order}
                   </span>
                   <div className="min-w-0">
-                    <p className="font-medium dark:text-white truncate">{exercise?.name}</p>
-                    <p className="text-xs text-gray-500">{planEx.targetSets} × {planEx.targetReps}</p>
+                    <p className="font-semibold dark:text-white truncate">{exercise?.name}</p>
+                    <p className="text-xs font-mono text-iron-500 dark:text-iron-300">
+                      {planEx.targetSets} × {planEx.targetReps}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {completedSets > 0 && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                    <span
+                      className={cn(
+                        'text-xs font-mono font-semibold px-2 py-0.5 rounded-md border',
+                        isDone
+                          ? 'bg-nutrition-100 dark:bg-nutrition-900/30 text-nutrition-700 dark:text-nutrition-300 border-nutrition-300 dark:border-nutrition-800'
+                          : 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-900/60',
+                      )}
+                    >
                       {completedSets}/{planEx.targetSets}
                     </span>
                   )}
-                  {completedSets >= planEx.targetSets && <Check size={16} className="text-green-500" />}
+                  {isDone && <Check size={16} className="text-nutrition-500" />}
                   {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </div>
               </button>
 
               {isExpanded && isWorkoutActive && (
-                <div className="px-3 sm:px-4 pb-4 border-t border-gray-100 dark:border-gray-800">
+                <div className="px-3 sm:px-4 pb-4 border-t border-iron-200/60 dark:border-iron-800 bg-iron-50/60 dark:bg-iron-950/40">
                   <div className="mt-3 space-y-2">
                     {Array.from({ length: planEx.targetSets }, (_, i) => i + 1).map((setNum) => {
                       const logged = loggedEx?.sets.find((s) => s.setNumber === setNum);
@@ -287,9 +342,9 @@ export default function TodayWorkout() {
       {isWorkoutActive && (
         <button
           onClick={handleCompleteWorkout}
-          className="w-full py-4 rounded-2xl bg-green-500 text-white font-semibold text-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-2xl bg-gradient-to-r from-nutrition-600 to-nutrition-500 text-white font-display text-xl uppercase tracking-[0.15em] hover:shadow-glow-nutrition transition-all flex items-center justify-center gap-3"
         >
-          <Check size={22} /> {isEditingCompleted ? 'Save Changes' : 'Complete Workout'}
+          <Check size={24} strokeWidth={2.5} /> {isEditingCompleted ? 'Save Changes' : 'Complete Workout'}
         </button>
       )}
     </div>
@@ -359,8 +414,24 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
   const canCopyPrevious = !readOnly && !!previous && !weight && !reps;
 
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2">
-      <span className="w-7 sm:w-8 text-center text-xs sm:text-sm font-medium text-gray-400 flex-shrink-0">
+    <div
+      className={cn(
+        'flex items-center gap-1.5 sm:gap-2 rounded-lg p-1.5 sm:p-2 transition-colors',
+        readOnly
+          ? logged?.isPersonalRecord
+            ? 'bg-gold-50 dark:bg-gold-900/10 border border-gold-200/70 dark:border-gold-900/50'
+            : 'bg-iron-100/70 dark:bg-iron-900/40 border border-iron-200/50 dark:border-iron-800/70'
+          : 'bg-white dark:bg-iron-900/50 border border-iron-200 dark:border-iron-800',
+      )}
+    >
+      <span
+        className={cn(
+          'w-8 sm:w-9 text-center font-display uppercase text-xs sm:text-sm font-bold flex-shrink-0 tracking-wider',
+          readOnly
+            ? 'text-iron-500 dark:text-iron-300'
+            : 'text-primary-600 dark:text-primary-300',
+        )}
+      >
         S{setNumber}
       </span>
       <input
@@ -375,7 +446,12 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
           setWeight(v);
           scheduleDraft(v, reps);
         }}
-        className="flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-60"
+        className={cn(
+          'flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg text-sm font-mono font-semibold tabular-nums border focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-60',
+          readOnly
+            ? 'bg-transparent border-transparent text-iron-700 dark:text-iron-100'
+            : 'bg-iron-50 dark:bg-iron-800 border-iron-200 dark:border-iron-700 dark:text-white',
+        )}
       />
       <input
         type="number"
@@ -389,7 +465,12 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
           setReps(v);
           scheduleDraft(weight, v);
         }}
-        className="flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-60"
+        className={cn(
+          'flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg text-sm font-mono font-semibold tabular-nums border focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-60',
+          readOnly
+            ? 'bg-transparent border-transparent text-iron-700 dark:text-iron-100'
+            : 'bg-iron-50 dark:bg-iron-800 border-iron-200 dark:border-iron-700 dark:text-white',
+        )}
       />
 
       {canCopyPrevious && (
@@ -398,7 +479,7 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
           onClick={copyPrevious}
           aria-label={`Copy values from set ${setNumber - 1}`}
           title={`Copy ${previous?.weight}kg × ${previous?.reps} from S${setNumber - 1}`}
-          className="shrink-0 p-2 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+          className="shrink-0 p-2 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors border border-primary-200/70 dark:border-primary-900/50"
         >
           <ArrowDown size={16} />
         </button>
@@ -410,7 +491,7 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
             type="button"
             onClick={() => setIsEditing(true)}
             aria-label={`Edit set ${setNumber}`}
-            className="shrink-0 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="shrink-0 p-2 rounded-lg bg-iron-200 dark:bg-iron-800 text-iron-700 dark:text-iron-200 hover:bg-iron-300 dark:hover:bg-iron-700 transition-colors"
           >
             <Pencil size={16} />
           </button>
@@ -418,10 +499,15 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
             type="button"
             disabled
             aria-label={`Set ${setNumber} logged`}
-            className="shrink-0 p-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-500 flex items-center"
+            className={cn(
+              'shrink-0 p-2 rounded-lg flex items-center',
+              logged?.isPersonalRecord
+                ? 'bg-gold-500 text-white shadow-glow-gold'
+                : 'bg-nutrition-500 text-white',
+            )}
           >
-            <Check size={16} />
-            {logged?.isPersonalRecord && <Trophy size={12} className="text-yellow-400 ml-0.5" />}
+            <Check size={16} strokeWidth={2.5} />
+            {logged?.isPersonalRecord && <Trophy size={12} className="text-white ml-0.5" />}
           </button>
         </>
       ) : (
@@ -431,7 +517,7 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
               type="button"
               onClick={cancelEdit}
               aria-label={`Cancel editing set ${setNumber}`}
-              className="shrink-0 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="shrink-0 p-2 rounded-lg bg-iron-200 dark:bg-iron-800 text-iron-600 dark:text-iron-300 hover:bg-iron-300 dark:hover:bg-iron-700 transition-colors"
             >
               <X size={16} />
             </button>
@@ -440,9 +526,9 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
             type="button"
             onClick={submit}
             aria-label={isEditing ? `Save set ${setNumber}` : `Log set ${setNumber}`}
-            className="shrink-0 p-2 rounded-lg transition-colors bg-primary-500 text-white hover:bg-primary-600"
+            className="shrink-0 p-2 rounded-lg transition-colors bg-primary-500 text-white hover:bg-primary-600 shadow-glow-primary"
           >
-            <Check size={16} />
+            <Check size={16} strokeWidth={2.5} />
           </button>
         </>
       )}

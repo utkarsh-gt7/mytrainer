@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
-import { Camera, Plus, Trash2, Footprints, Heart, Droplets, Loader2, AlertCircle } from 'lucide-react';
+import { Camera, Plus, Trash2, Footprints, Heart, Droplets, Loader2, AlertCircle, Utensils } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import { useAppStore } from '@/store/useAppStore';
 import { analyzeFoodImage, isGeminiConfigured } from '@/services/gemini';
 import { getDailyCalorieTarget } from '@/utils/calculations';
 import type { FoodItem } from '@/types';
+import PageHeader from '@/components/PageHeader';
 
-const MACRO_COLORS = { protein: '#6366f1', carbs: '#22c55e', fat: '#f59e0b' };
+const MACRO_COLORS = { protein: '#2f8dff', carbs: '#22ac5c', fat: '#f0b429' };
 
 export default function CalorieTracker() {
   const { calorieLogs, addMeal, removeMeal, updateSteps, updateCardio, updateWater, profile } = useAppStore();
@@ -99,53 +100,57 @@ export default function CalorieTracker() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold dark:text-white">Calorie Tracker</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            {isTrainingDay ? '🏋️ Training Day' : '😴 Rest Day'} • Target: {calorieTarget} cal
-          </p>
-        </div>
+      <PageHeader
+        theme="nutrition"
+        icon={Utensils}
+        eyebrow={isTrainingDay ? 'Training Day · Fuel Up' : 'Rest Day · Recovery'}
+        title="Nutrition"
+        subtitle={`Target ${calorieTarget} cal — lean protein, smart carbs, clean fats.`}
+      >
         <input
           type="date"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm dark:text-white w-full sm:w-auto"
+          className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-sm text-sm text-white placeholder-white/60 focus:outline-none"
         />
-      </div>
+      </PageHeader>
 
       {/* Macro Summary */}
       <div className="grid md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
-          <h3 className="font-semibold dark:text-white mb-2">Calories</h3>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-nutrition-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-6">
+          <h3 className="font-display text-sm uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300 mb-2">Calories</h3>
           <div className="flex items-end gap-2">
-            <span className="text-3xl font-bold dark:text-white">{totalCals}</span>
-            <span className="text-sm text-gray-500 mb-1">/ {calorieTarget} cal</span>
+            <span className="text-4xl font-display font-bold dark:text-white tabular-nums">{totalCals}</span>
+            <span className="text-sm text-iron-500 mb-1">/ {calorieTarget} cal</span>
           </div>
-          <div className="mt-3 h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+          <div className="mt-3 h-3 bg-iron-100 dark:bg-iron-800 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${totalCals > calorieTarget * 1.1 ? 'bg-red-500' : 'bg-primary-500'}`}
+              className={`h-full rounded-full transition-all ${
+                totalCals > calorieTarget * 1.1
+                  ? 'bg-gradient-to-r from-primary-500 to-flame-500'
+                  : 'bg-gradient-to-r from-nutrition-400 to-nutrition-600'
+              }`}
               style={{ width: `${Math.min(100, (totalCals / calorieTarget) * 100)}%` }}
             />
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-            <div>
-              <p className="text-lg font-bold text-indigo-500">{totalProtein}g</p>
-              <p className="text-xs text-gray-500">Protein</p>
+          <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-lg bg-metrics-50 dark:bg-metrics-900/20 border border-metrics-200/60 dark:border-metrics-900/40 p-2">
+              <p className="text-lg font-bold text-metrics-600 dark:text-metrics-300 font-mono tabular-nums">{totalProtein}g</p>
+              <p className="text-[10px] uppercase tracking-wider text-iron-500">Protein</p>
             </div>
-            <div>
-              <p className="text-lg font-bold text-green-500">{totalCarbs}g</p>
-              <p className="text-xs text-gray-500">Carbs</p>
+            <div className="rounded-lg bg-nutrition-50 dark:bg-nutrition-900/20 border border-nutrition-200/60 dark:border-nutrition-900/40 p-2">
+              <p className="text-lg font-bold text-nutrition-600 dark:text-nutrition-300 font-mono tabular-nums">{totalCarbs}g</p>
+              <p className="text-[10px] uppercase tracking-wider text-iron-500">Carbs</p>
             </div>
-            <div>
-              <p className="text-lg font-bold text-yellow-500">{totalFat}g</p>
-              <p className="text-xs text-gray-500">Fat</p>
+            <div className="rounded-lg bg-gold-50 dark:bg-gold-900/20 border border-gold-200/60 dark:border-gold-900/40 p-2">
+              <p className="text-lg font-bold text-gold-600 dark:text-gold-300 font-mono tabular-nums">{totalFat}g</p>
+              <p className="text-[10px] uppercase tracking-wider text-iron-500">Fat</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-          <h3 className="font-semibold dark:text-white mb-2">Macro Split</h3>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 p-4 sm:p-6">
+          <h3 className="font-display text-sm uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300 mb-2">Macro Split</h3>
           {totalCals > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
@@ -165,11 +170,11 @@ export default function CalorieTracker() {
       </div>
 
       {/* Daily Verdict */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3">
+      <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 p-4 flex items-center gap-3">
         <span className="text-2xl">{verdict.emoji}</span>
         <div>
-          <p className={`font-medium ${verdict.color}`}>{verdict.text}</p>
-          <p className="text-xs text-gray-500">
+          <p className={`font-semibold ${verdict.color}`}>{verdict.text}</p>
+          <p className="text-xs text-iron-500">
             Steps: {todayLog?.steps ?? 0} • Cardio: {todayLog?.cardioMinutes ?? 0} min • Water: {todayLog?.waterLiters ?? 0}L
           </p>
         </div>
@@ -177,36 +182,36 @@ export default function CalorieTracker() {
 
       {/* Activity Inputs */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-metrics-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Footprints size={16} className="text-blue-500" />
-            <span className="text-xs font-medium dark:text-gray-400">Steps</span>
+            <Footprints size={16} className="text-metrics-500" />
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-iron-500 dark:text-iron-300">Steps</span>
           </div>
           <input
             type="number"
             placeholder="0"
             value={todayLog?.steps ?? ''}
             onChange={(e) => updateSteps(selectedDate, parseInt(e.target.value) || 0)}
-            className="w-full px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white"
+            className="w-full px-2 py-1.5 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm font-mono tabular-nums dark:text-white"
           />
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-primary-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Heart size={16} className="text-red-500" />
-            <span className="text-xs font-medium dark:text-gray-400">Cardio (min)</span>
+            <Heart size={16} className="text-primary-500" />
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-iron-500 dark:text-iron-300">Cardio (min)</span>
           </div>
           <input
             type="number"
             placeholder="0"
             value={todayLog?.cardioMinutes ?? ''}
             onChange={(e) => updateCardio(selectedDate, parseInt(e.target.value) || 0)}
-            className="w-full px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white"
+            className="w-full px-2 py-1.5 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm font-mono tabular-nums dark:text-white"
           />
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-metrics-400 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Droplets size={16} className="text-cyan-500" />
-            <span className="text-xs font-medium dark:text-gray-400">Water (L)</span>
+            <Droplets size={16} className="text-metrics-400" />
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-iron-500 dark:text-iron-300">Water (L)</span>
           </div>
           <input
             type="number"
@@ -214,7 +219,7 @@ export default function CalorieTracker() {
             placeholder="0"
             value={todayLog?.waterLiters ?? ''}
             onChange={(e) => updateWater(selectedDate, parseFloat(e.target.value) || 0)}
-            className="w-full px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white"
+            className="w-full px-2 py-1.5 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm font-mono tabular-nums dark:text-white"
           />
         </div>
       </div>
@@ -222,7 +227,7 @@ export default function CalorieTracker() {
       {/* Add Meal Button */}
       <button
         onClick={() => setShowMealForm(true)}
-        className="w-full py-3 rounded-xl bg-primary-500 text-white font-medium hover:bg-primary-600 flex items-center justify-center gap-2"
+        className="w-full py-3 rounded-xl bg-gradient-to-r from-nutrition-600 to-nutrition-500 text-white font-display uppercase tracking-[0.15em] hover:shadow-glow-nutrition transition-all flex items-center justify-center gap-2"
       >
         <Plus size={18} /> Add Meal
       </button>
@@ -230,30 +235,30 @@ export default function CalorieTracker() {
       {/* Meals List */}
       {todayLog?.meals && todayLog.meals.length > 0 && (
         <div className="space-y-3">
-          <h3 className="font-semibold dark:text-white">Meals</h3>
+          <h3 className="font-display text-sm uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300">Meals</h3>
           {todayLog.meals.map((meal) => (
-            <div key={meal.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+            <div key={meal.id} className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-nutrition-400 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium dark:text-white">{meal.name}</p>
-                  <p className="text-xs text-gray-500">{meal.time}</p>
+                  <p className="font-semibold dark:text-white">{meal.name}</p>
+                  <p className="text-xs text-iron-500">{meal.time}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold dark:text-white">{meal.calories} cal</span>
-                  <button onClick={() => removeMeal(selectedDate, meal.id)} className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-400">
+                  <span className="text-sm font-bold dark:text-white font-mono tabular-nums">{meal.calories} cal</span>
+                  <button onClick={() => removeMeal(selectedDate, meal.id)} className="p-1 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded text-primary-400">
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
-              <div className="mt-2 flex gap-3 text-xs">
-                <span className="text-indigo-500">P: {meal.protein}g</span>
-                <span className="text-green-500">C: {meal.carbs}g</span>
-                <span className="text-yellow-500">F: {meal.fat}g</span>
+              <div className="mt-2 flex gap-3 text-xs font-mono">
+                <span className="text-metrics-600 dark:text-metrics-300">P: {meal.protein}g</span>
+                <span className="text-nutrition-600 dark:text-nutrition-300">C: {meal.carbs}g</span>
+                <span className="text-gold-600 dark:text-gold-300">F: {meal.fat}g</span>
               </div>
               {meal.items.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {meal.items.map((item, i) => (
-                    <p key={i} className="text-xs text-gray-400">• {item.name} ({item.quantity}) — {item.calories} cal</p>
+                    <p key={i} className="text-xs text-iron-400">• {item.name} ({item.quantity}) — {item.calories} cal</p>
                   ))}
                 </div>
               )}

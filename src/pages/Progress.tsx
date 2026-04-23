@@ -3,6 +3,7 @@ import { Trophy, TrendingUp, Calendar, Flame, Dumbbell } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { useAppStore } from '@/store/useAppStore';
 import { getExerciseById } from '@/data/exercises';
+import PageHeader from '@/components/PageHeader';
 
 export default function Progress() {
   const { workoutLogs, calorieLogs, bodyMetrics, personalRecords, streak, profile } = useAppStore();
@@ -121,35 +122,41 @@ export default function Progress() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="text-xl sm:text-2xl font-bold dark:text-white">Progress & Analytics</h1>
+      <PageHeader
+        theme="progress"
+        icon={Trophy}
+        eyebrow="Earned, Not Given"
+        title="Progress"
+        subtitle="Volume, PRs and streaks — receipts for the work you've put in."
+      />
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-primary-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4">
           <Dumbbell size={18} className="text-primary-500 mb-1" />
-          <p className="text-2xl font-bold dark:text-white">{totalWorkouts}</p>
-          <p className="text-xs text-gray-500">Total Workouts</p>
+          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">{totalWorkouts}</p>
+          <p className="text-[10px] uppercase tracking-wider text-iron-500">Total Workouts</p>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-          <TrendingUp size={18} className="text-green-500 mb-1" />
-          <p className="text-2xl font-bold dark:text-white">{Math.round(totalVolume / 1000)}k</p>
-          <p className="text-xs text-gray-500">Total Volume (kg)</p>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-nutrition-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4">
+          <TrendingUp size={18} className="text-nutrition-500 mb-1" />
+          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">{Math.round(totalVolume / 1000)}k</p>
+          <p className="text-[10px] uppercase tracking-wider text-iron-500">Total Volume (kg)</p>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-          <Trophy size={18} className="text-yellow-500 mb-1" />
-          <p className="text-2xl font-bold dark:text-white">{personalRecords.length}</p>
-          <p className="text-xs text-gray-500">Personal Records</p>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-gold-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4">
+          <Trophy size={18} className="text-gold-500 mb-1" />
+          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">{personalRecords.length}</p>
+          <p className="text-[10px] uppercase tracking-wider text-iron-500">Personal Records</p>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-          <Flame size={18} className="text-orange-500 mb-1" />
-          <p className="text-2xl font-bold dark:text-white">{streak.longest}</p>
-          <p className="text-xs text-gray-500">Best Streak</p>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-flame-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4">
+          <Flame size={18} className="text-flame-500 mb-1" />
+          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">{streak.longest}</p>
+          <p className="text-[10px] uppercase tracking-wider text-iron-500">Best Streak</p>
         </div>
       </div>
 
       {/* Dynamic Key Notes */}
-      <div className="bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 rounded-xl border border-primary-200 dark:border-primary-800 p-4 sm:p-6">
-        <h3 className="font-semibold dark:text-white mb-3 flex items-center gap-2">
+      <div className="bg-gradient-to-r from-gold-50 via-white to-primary-50 dark:from-gold-900/20 dark:via-iron-900/60 dark:to-primary-900/20 rounded-2xl border border-gold-200 dark:border-gold-900/50 p-4 sm:p-6">
+        <h3 className="font-display text-sm uppercase tracking-wider font-bold text-gold-700 dark:text-gold-300 mb-3 flex items-center gap-2">
           <Calendar size={18} /> Weekly Insights
         </h3>
         <div className="space-y-2">
@@ -162,30 +169,30 @@ export default function Progress() {
       {/* Charts */}
       <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
         {weeklyWorkouts.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-            <h3 className="font-semibold dark:text-white mb-4">Weekly Workouts</h3>
+          <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 p-4 sm:p-6">
+            <h3 className="font-display text-sm uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300 mb-4">Weekly Workouts</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={weeklyWorkouts}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
                 <XAxis dataKey="week" tick={{ fontSize: 11 }} stroke="#9CA3AF" />
                 <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" />
                 <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }} />
-                <Bar dataKey="workouts" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="workouts" fill="#ef2b2b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         )}
 
         {weeklyCalories.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-            <h3 className="font-semibold dark:text-white mb-4">Avg Weekly Calories</h3>
+          <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 p-4 sm:p-6">
+            <h3 className="font-display text-sm uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300 mb-4">Avg Weekly Calories</h3>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={weeklyCalories}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
                 <XAxis dataKey="week" tick={{ fontSize: 11 }} stroke="#9CA3AF" />
                 <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" />
                 <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }} />
-                <Line type="monotone" dataKey="avgCalories" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="avgCalories" stroke="#22ac5c" strokeWidth={2} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -194,15 +201,15 @@ export default function Progress() {
 
       {/* Weight Trend */}
       {weightData.length > 1 && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-          <h3 className="font-semibold dark:text-white mb-4">Weight Trend</h3>
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 p-4 sm:p-6">
+          <h3 className="font-display text-sm uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300 mb-4">Weight Trend</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={weightData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9CA3AF" />
               <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} stroke="#9CA3AF" />
               <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }} />
-              <Line type="monotone" dataKey="weight" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="weight" stroke="#2f8dff" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -210,23 +217,23 @@ export default function Progress() {
 
       {/* PR History */}
       {recentPRs.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-          <h3 className="font-semibold dark:text-white p-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
-            <Trophy size={18} className="text-yellow-500" /> Personal Records
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 overflow-hidden">
+          <h3 className="font-display text-sm uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300 p-4 border-b border-iron-200/60 dark:border-iron-800 flex items-center gap-2">
+            <Trophy size={18} className="text-gold-500" /> Personal Records
           </h3>
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          <div className="divide-y divide-iron-100 dark:divide-iron-800">
             {recentPRs.map((pr) => {
               const ex = getExerciseById(pr.exerciseId);
               return (
                 <div key={pr.id} className="px-4 py-3 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium dark:text-white">{ex?.name}</p>
-                    <p className="text-xs text-gray-500">{new Date(pr.date).toLocaleDateString()}</p>
+                    <p className="text-xs text-iron-500">{new Date(pr.date).toLocaleDateString()}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-yellow-600 dark:text-yellow-400">{pr.weight} kg × {pr.reps}</p>
+                    <p className="text-sm font-bold text-gold-700 dark:text-gold-300 font-mono tabular-nums">{pr.weight} kg × {pr.reps}</p>
                     {pr.previousBest > 0 && (
-                      <p className="text-xs text-green-500">+{pr.weight - pr.previousBest} kg from previous</p>
+                      <p className="text-xs text-nutrition-600">+{pr.weight - pr.previousBest} kg from previous</p>
                     )}
                   </div>
                 </div>

@@ -8,9 +8,11 @@ import {
   Scale,
   ArrowRight,
   Calendar,
+  Activity,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { getExerciseById } from '@/data/exercises';
+import PageHeader from '@/components/PageHeader';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -49,54 +51,61 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold dark:text-white">
-          Welcome back, {profile.name} 👋
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
-          {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-      </div>
+      <PageHeader
+        theme="dashboard"
+        icon={Activity}
+        eyebrow={today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        title={`Welcome back, ${profile.name}`}
+        subtitle={todayPlan ? `${todayPlan.label} day — ${todayPlan.focus.toUpperCase()} focus. Let's move.` : 'Rest day — fuel up and recover.'}
+      >
+        {streak.current > 0 && (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/15 border border-white/25 backdrop-blur-sm">
+            <Flame size={16} className="text-white" />
+            <span className="font-display uppercase text-sm font-bold tracking-wider">
+              {streak.current} day streak
+            </span>
+          </div>
+        )}
+      </PageHeader>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
-          icon={<Flame className="text-orange-500" />}
+          icon={<Flame className="text-flame-500" />}
           label="Streak"
           value={`${streak.current} days`}
           sub={`Best: ${streak.longest}`}
-          color="orange"
+          color="flame"
         />
         <StatCard
           icon={<Dumbbell className="text-primary-500" />}
           label="This Week"
           value={`${weekLogs.length}/6`}
           sub="workouts done"
-          color="indigo"
+          color="primary"
         />
         <StatCard
-          icon={<Utensils className="text-green-500" />}
+          icon={<Utensils className="text-nutrition-500" />}
           label="Avg Calories"
           value={avgCalories.toString()}
           sub="this week"
-          color="green"
+          color="nutrition"
         />
         <StatCard
-          icon={<Scale className="text-blue-500" />}
+          icon={<Scale className="text-metrics-500" />}
           label="Weight"
           value={latestMetrics ? `${latestMetrics.weight} kg` : `${profile.weight} kg`}
           sub={latestMetrics?.bodyFat ? `${latestMetrics.bodyFat}% BF` : ''}
-          color="blue"
+          color="metrics"
         />
       </div>
 
       {/* Today's Workout */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
+      <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-primary-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Calendar className="text-primary-500" size={22} />
-            <h2 className="text-lg font-semibold dark:text-white">Today&apos;s Workout</h2>
+            <h2 className="font-display text-lg uppercase tracking-wide font-bold dark:text-white">Today&apos;s Workout</h2>
           </div>
           {todayPlan && (
             <Link
@@ -157,33 +166,33 @@ export default function Dashboard() {
       {/* Bottom Row */}
       <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
         {/* Today's Nutrition */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-nutrition-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold dark:text-white flex items-center gap-2">
-              <Utensils size={18} className="text-green-500" />
+            <h3 className="font-display text-base uppercase tracking-wide font-bold dark:text-white flex items-center gap-2">
+              <Utensils size={18} className="text-nutrition-500" />
               Today&apos;s Nutrition
             </h3>
-            <Link to="/nutrition" className="text-sm text-primary-500 hover:text-primary-600">
+            <Link to="/nutrition" className="text-sm text-nutrition-600 hover:text-nutrition-700 font-semibold">
               Log Meal →
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-2xl font-bold dark:text-white">{todayTotalCals}</p>
-              <p className="text-xs text-gray-500">/ {profile.maintenanceCalories} cal</p>
-              <div className="mt-2 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <p className="text-2xl font-bold dark:text-white font-display tabular-nums">{todayTotalCals}</p>
+              <p className="text-xs text-iron-500 dark:text-iron-400">/ {profile.maintenanceCalories} cal</p>
+              <div className="mt-2 h-2 bg-iron-100 dark:bg-iron-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-green-500 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-nutrition-400 to-nutrition-600 rounded-full transition-all"
                   style={{ width: `${Math.min(100, (todayTotalCals / profile.maintenanceCalories) * 100)}%` }}
                 />
               </div>
             </div>
             <div>
-              <p className="text-2xl font-bold dark:text-white">{todayTotalProtein}g</p>
-              <p className="text-xs text-gray-500">/ {profile.proteinTarget}g protein</p>
-              <div className="mt-2 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <p className="text-2xl font-bold dark:text-white font-display tabular-nums">{todayTotalProtein}g</p>
+              <p className="text-xs text-iron-500 dark:text-iron-400">/ {profile.proteinTarget}g protein</p>
+              <div className="mt-2 h-2 bg-iron-100 dark:bg-iron-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-blue-500 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-metrics-400 to-metrics-600 rounded-full transition-all"
                   style={{ width: `${Math.min(100, (todayTotalProtein / profile.proteinTarget) * 100)}%` }}
                 />
               </div>
@@ -192,13 +201,13 @@ export default function Dashboard() {
         </div>
 
         {/* Recent PRs */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="bg-white dark:bg-iron-900/60 rounded-2xl border-l-4 border-l-gold-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold dark:text-white flex items-center gap-2">
-              <Trophy size={18} className="text-yellow-500" />
+            <h3 className="font-display text-base uppercase tracking-wide font-bold dark:text-white flex items-center gap-2">
+              <Trophy size={18} className="text-gold-500" />
               Recent PRs
             </h3>
-            <Link to="/progress" className="text-sm text-primary-500 hover:text-primary-600">
+            <Link to="/progress" className="text-sm text-gold-600 hover:text-gold-700 font-semibold">
               View All →
             </Link>
           </div>
@@ -210,14 +219,14 @@ export default function Dashboard() {
                   <div key={pr.id} className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium dark:text-gray-300">{ex?.name}</p>
-                      <p className="text-xs text-gray-500">{pr.date}</p>
+                      <p className="text-xs text-iron-500">{pr.date}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
+                      <p className="text-sm font-bold text-gold-700 dark:text-gold-300 font-mono tabular-nums">
                         {pr.weight} kg × {pr.reps}
                       </p>
                       {pr.previousBest > 0 && (
-                        <p className="text-xs text-green-500 flex items-center gap-0.5 justify-end">
+                        <p className="text-xs text-nutrition-600 flex items-center gap-0.5 justify-end">
                           <TrendingUp size={12} /> +{pr.weight - pr.previousBest} kg
                         </p>
                       )}
@@ -227,7 +236,7 @@ export default function Dashboard() {
               })}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
+            <p className="text-sm text-iron-400 dark:text-iron-500 text-center py-4">
               No PRs yet. Start logging workouts!
             </p>
           )}
@@ -251,16 +260,20 @@ function StatCard({
   color: string;
 }) {
   const bgMap: Record<string, string> = {
-    orange: 'bg-orange-50 dark:bg-orange-900/10',
-    indigo: 'bg-indigo-50 dark:bg-indigo-900/10',
-    green: 'bg-green-50 dark:bg-green-900/10',
-    blue: 'bg-blue-50 dark:bg-blue-900/10',
+    flame: 'bg-gradient-to-br from-flame-50 to-white dark:from-flame-900/20 dark:to-iron-900/60 border-flame-200 dark:border-flame-900/50',
+    primary: 'bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/20 dark:to-iron-900/60 border-primary-200 dark:border-primary-900/50',
+    nutrition: 'bg-gradient-to-br from-nutrition-50 to-white dark:from-nutrition-900/20 dark:to-iron-900/60 border-nutrition-200 dark:border-nutrition-900/50',
+    metrics: 'bg-gradient-to-br from-metrics-50 to-white dark:from-metrics-900/20 dark:to-iron-900/60 border-metrics-200 dark:border-metrics-900/50',
+    gold: 'bg-gradient-to-br from-gold-50 to-white dark:from-gold-900/20 dark:to-iron-900/60 border-gold-200 dark:border-gold-900/50',
   };
   return (
-    <div className={`rounded-2xl p-3 sm:p-4 ${bgMap[color] ?? bgMap.indigo} border border-gray-200 dark:border-gray-800`}>
-      <div className="flex items-center gap-2 mb-1 sm:mb-2">{icon}<span className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">{label}</span></div>
-      <p className="text-lg sm:text-xl font-bold dark:text-white truncate">{value}</p>
-      {sub && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{sub}</p>}
+    <div className={`rounded-2xl p-3 sm:p-4 border ${bgMap[color] ?? bgMap.primary}`}>
+      <div className="flex items-center gap-2 mb-1 sm:mb-2">
+        {icon}
+        <span className="text-[10px] sm:text-xs font-display uppercase tracking-wider text-iron-500 dark:text-iron-300">{label}</span>
+      </div>
+      <p className="text-lg sm:text-2xl font-bold dark:text-white truncate font-display tracking-tight">{value}</p>
+      {sub && <p className="text-xs text-iron-500 dark:text-iron-400 mt-0.5">{sub}</p>}
     </div>
   );
 }

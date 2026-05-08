@@ -11,8 +11,8 @@
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript)
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite)
-![Tests](https://img.shields.io/badge/tests-164%20passing-brightgreen)
-![Coverage](https://img.shields.io/badge/lines-100%25-brightgreen)
+![Tests](https://img.shields.io/badge/tests-262%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/lines-88.8%25-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 [Live Demo](https://mytrainer707.netlify.app) · [Report Bug](https://github.com/utkarsh-gt7/mytrainer/issues) · [Request Feature](https://github.com/utkarsh-gt7/mytrainer/issues)
@@ -55,17 +55,20 @@
 ## ✨ Features
 
 ### 🏋️ Training
-- **6-Day Push / Pull / Legs plan** pre-loaded and fully editable
+- **6-Day Push / Pull / Legs plan** pre-loaded and fully editable, with separate forearm-flexion and forearm-extension work, seated calf raise on Saturday, and quad volume tuned to MAV
 - **Active workout flow** with timer, rest timer, and per-set logging
 - **Mobile-safe set rows** — tick/edit/copy buttons never get clipped on small screens
 - **Clever "copy previous set"** button — one tap to prefill weight and reps from the set above
 - **Per-set editing** — change any logged set after saving, without losing your PRs
 - **Re-open completed workouts** to amend anything on today's session
 - **Automatic PR detection** and history
+- **Previous Logs popup** on every expanded exercise card — surfaces your most recent prior session for that exercise (scans full history, so twice-a-week movements work), your all-time PR, a 5-session trend, and a **Smart Overload suggestion** powered by double-progression rules (hit top of range → +2.5 kg & reset reps; inside range → push +1 rep; missed floor → consolidate)
+- **Workout Archive** at `/archive` — search and filter every prior session by exercise, muscle group, day-of-week, or date range, with collapsed top-set chips, expandable per-exercise breakdowns, and a PR/volume/sets summary that recalculates on the filtered slice
 
 ### 🥗 Nutrition
 - **Manual food logging** with macros and portion control
-- **AI food-image analysis** via Google Gemini Vision (optional)
+- **AI food-image analysis** via Google Gemini Vision (optional). The Add Meal modal also accepts an **optional free-text description** that's threaded into the prompt so the model can correct visual estimates with hidden context (cooking method, oils, brands, exact weights)
+- **Saved Meals (templates)** — stash any regular meal with its ingredients and measurements, then **one-tap add** it to any day's calorie log from the Saved Meals chip strip on the nutrition page. Macros are derived from items so a template's logged instance never drifts from its ingredients. The Add Meal modal includes a "Save as template" checkbox so you can promote a freshly-entered meal in the same flow
 - **Steps, cardio minutes, and water intake** per day
 
 ### 📊 Analytics
@@ -108,9 +111,10 @@ Each page has a distinct color identity that matches its purpose — the app fee
 | **Weekly Plan** | Iron charcoal | Day cards with focus-colored left stripes (strength / hypertrophy / athletic) |
 | **Exercise Library** | Graphite | Quiet reference-catalog feel |
 | **Body Metrics** | Blueprint blue | Measurement-style stat tiles, blue weight trend |
-| **Calorie Tracker** | Leaf green | Color-coded macro tiles (protein blue / carbs green / fat gold), green gradient **Add Meal** |
+| **Calorie Tracker** | Leaf green | Color-coded macro tiles (protein blue / carbs green / fat gold), green gradient **Add Meal**, Saved Meals chip strip |
 | **Progress** | Trophy gold | Gold hero, gold-gradient Weekly Insights card, gold PR table |
-| **Settings** | Graphite | Clean neutral surface for personal setup |
+| **Workout Archive** | Iron charcoal | Receipts hero with active-filter badge; per-session cards with focus-coloured strength/hypertrophy/athletic chips and gold PR markers |
+| **Settings** | Graphite | Clean neutral surface for personal setup, with a Training History link to the Archive |
 
 ### Shared primitives
 
@@ -206,7 +210,9 @@ flowchart LR
         DR["Drafts<br/>setWorkoutDraft · clear*"]
         BM["Body Metrics"]
         CL["Calorie Logs<br/>meals · steps · cardio · water"]
+        SM["Saved Meals<br/>addSavedMeal · updateSavedMeal<br/>removeSavedMeal · applySavedMeal"]
         PR["Personal Records · Streak"]
+        MIG["Persist Migrations<br/>v1→v2 drafts · v2→v3 schema +<br/>PR recompute · seeds savedMeals"]
     end
 
     store --> adapter["firestoreStorage<br/>(StateStorage)"]
@@ -244,32 +250,44 @@ fitness-tracker/
 │   │   ├── AppErrorBoundary.tsx
 │   │   ├── ErrorFallback.tsx
 │   │   ├── PageHeader.tsx     Themed hero banner (8 variants)
-│   │   └── layout/            AppLayout with sidebar + bottom nav
+│   │   ├── RouteErrorBoundary.tsx
+│   │   ├── layout/            AppLayout with sidebar + bottom nav
+│   │   ├── nutrition/
+│   │   │   ├── SavedMealsBar.tsx    One-tap meal templates strip + manager sheet
+│   │   │   └── SavedMealEditor.tsx  CRUD modal for saved-meal templates
+│   │   └── workout/
+│   │       └── PreviousLogsModal.tsx  Prior-session + smart-overload popup
 │   ├── data/
-│   │   ├── defaultPlan.ts     6-day PPL template
-│   │   └── exercises.ts       Exercise database
+│   │   ├── defaultPlan.ts     6-day PPL template (forearm split, seated calf, MAV quads)
+│   │   └── exercises.ts       Exercise database (incl. forearm-ext, seated-calf)
 │   ├── hooks/
 │   │   └── useRestTimer.ts    Countdown timer with audio ping
 │   ├── pages/
 │   │   ├── Dashboard.tsx
-│   │   ├── TodayWorkout.tsx   Active workout, drafts, edit-mode
+│   │   ├── TodayWorkout.tsx   Active workout, drafts, edit-mode, History button
 │   │   ├── WeeklyPlan.tsx
 │   │   ├── ExerciseLibrary.tsx
 │   │   ├── BodyMetrics.tsx
-│   │   ├── CalorieTracker.tsx
+│   │   ├── CalorieTracker.tsx Saved Meals strip, AI image + description input
 │   │   ├── Progress.tsx
+│   │   ├── WorkoutArchive.tsx Filterable history of every workout session
 │   │   └── Settings.tsx
 │   ├── services/
 │   │   ├── firebase.ts        Firestore client + isFirebaseConfigured
-│   │   ├── gemini.ts          AI food analysis (optional)
+│   │   ├── gemini.ts          AI food analysis (image + optional description)
+│   │   ├── notifier.ts        Toast-style notification bus
 │   │   └── localStorage.ts    Cloud-only stub (throws if called)
 │   ├── store/
-│   │   └── useAppStore.ts     Zustand store + firestoreStorage adapter
+│   │   └── useAppStore.ts     Zustand store, firestoreStorage adapter, v1→v3 migrations
 │   ├── types/index.ts
 │   ├── utils/
+│   │   ├── archiveFilters.ts  Pure filter helpers for the Workout Archive
 │   │   ├── calculations.ts
-│   │   └── cn.ts
-│   ├── __tests__/             11 test suites · 164 tests
+│   │   ├── cn.ts
+│   │   ├── exerciseHistory.ts Find prior sessions + smart-overload suggestion
+│   │   ├── mealMath.ts        Sum macros across food items
+│   │   └── workoutMigrations.ts v3 schema rewrites + PR recomputation
+│   ├── __tests__/             20 test suites · 262 tests
 │   ├── App.tsx
 │   └── main.tsx
 ├── netlify.toml
@@ -371,8 +389,9 @@ Opens by default. Shows today's plan, streak, recent PRs, and a weekly summary.
 2. For each set, enter **weight** and **reps**, then press the **✓** tick button.
 3. On sets 2+ an arrow-down button appears — tap it to copy weight and reps from the previous set.
 4. After logging, each row becomes read-only with a **pencil** icon; tap it to edit.
-5. Tap **Complete Workout** when done. Your streak updates automatically.
-6. To change a saved session, press **Edit Workout** on the "Workout Complete" card to re-open it.
+5. Tap the **History** (clock-with-arrow) button on the expanded exercise card to open the **Previous Logs** popup — shows your last session, all-time PR, recent trend, and a Smart Overload suggestion.
+6. Tap **Complete Workout** when done. Your streak updates automatically.
+7. To change a saved session, press **Edit Workout** on the "Workout Complete" card to re-open it.
 
 > 💡 Typing is **autosaved** — if you reload mid-workout your values come right back.
 
@@ -386,13 +405,25 @@ Full CRUD on your library, with search and muscle-group filters.
 Log weight / body fat / measurements. BMI is computed automatically.
 
 ### Nutrition (`/nutrition`)
-Add meals manually, or upload a food photo to get an AI estimate via Gemini. Also tracks water, cardio, and steps.
+- **Saved Meals chip strip** — your stashed templates appear at the top. Tap a chip to one-tap log it to the selected date with the template's default time (or now). The "Manage" button opens a sheet for full CRUD.
+- **Add Meal** — log meals manually or upload a food photo for an AI estimate via Gemini.
+- **Optional description** — directly under the photo dropzone, type any context the camera can't see (cooking method, hidden oils, brand, exact weights). It's appended to the model prompt so the estimate accounts for it.
+- **Save as template** — toggle this checkbox in the Add Meal modal to promote the just-entered meal into a Saved Meal in the same flow.
+- Also tracks water, cardio, and steps per day.
 
 ### Progress (`/progress`)
 Charts for weekly workouts, calories, weight trend, and PR history.
 
+### Workout Archive (`/archive`)
+Reachable from the desktop sidebar, the mobile **More** sheet, and the **Training History** card on Settings.
+1. Tap **Filters** to expand the panel.
+2. Compose any of: free-text exercise search, muscle-group dropdown, day-of-week dropdown, inclusive **From / To** date range. The active-filter badge counts how many are in play.
+3. The summary tiles (sessions / sets / volume / PRs) recalculate against the filtered slice.
+4. Each session card collapses to top-set chips (newest first); tap to expand the full set-by-set breakdown with PR markers.
+5. Inside an expanded session, each exercise has a **History** button that opens the same Previous Logs popup — so you can pivot from any archived session straight back into a smart-overload workflow.
+
 ### Settings (`/settings`)
-Edit profile, toggle theme, export or clear all cloud data.
+Edit profile, toggle theme, export or clear all cloud data. Also includes a **Training History** link card that takes you to the Workout Archive.
 
 ---
 
@@ -408,16 +439,16 @@ npm run test:watch      # watch mode
 npm run test:coverage   # with V8 coverage reporter
 ```
 
-### Latest run (176 tests · 13 suites)
+### Latest run (262 tests · 20 suites)
 
 | Metric | Result |
 |--------|-------:|
-| **Test files** | **13 passed** |
-| **Tests** | **176 passed** |
-| **Line coverage** | **🟢 98.61%** |
-| **Statement coverage** | 🟢 97.28% |
-| **Function coverage** | 🟢 98.39% |
-| **Branch coverage** | 🟡 85.11% |
+| **Test files** | **20 passed** |
+| **Tests** | **262 passed** |
+| **Line coverage** | **🟢 88.80%** |
+| **Statement coverage** | 🟢 86.96% |
+| **Function coverage** | 🟢 85.00% |
+| **Branch coverage** | 🟡 73.61% |
 
 ### Per-file coverage
 
@@ -426,18 +457,27 @@ npm run test:coverage   # with V8 coverage reporter
 | `components/ErrorFallback.tsx` | 100% | 80% | 100% | **100%** |
 | `components/PageHeader.tsx` | 100% | 76.92% | 100% | 100% |
 | `components/RouteErrorBoundary.tsx` | 90.90% | 100% | 80% | 90% |
+| `components/nutrition/SavedMealsBar.tsx` | 60.71% | 56.25% | 44.44% | 59.25% |
+| `components/nutrition/SavedMealEditor.tsx` | 1.75% | 0% | 0% | 2.12% |
+| `components/workout/PreviousLogsModal.tsx` | 89.18% | 63.63% | 87.5% | 93.54% |
 | `data/defaultPlan.ts` | 100% | 100% | 100% | 100% |
 | `data/exercises.ts` | 100% | 100% | 100% | 100% |
 | `hooks/useRestTimer.ts` | 100% | 100% | 91.66% | 100% |
-| `pages/TodayWorkout.tsx` | 95.77% | 84.02% | 100% | 100% |
+| `pages/TodayWorkout.tsx` | 93.83% | 82% | 92.10% | 97.61% |
+| `pages/WorkoutArchive.tsx` | 80% | 67.77% | 71.87% | 85.36% |
 | `services/firebase.ts` | 100% | 56.25% | 100% | 100% |
+| `services/gemini.ts` | 82.75% | 64.28% | 92.85% | 86.79% |
 | `services/localStorage.ts` | 100% | 100% | 100% | 100% |
 | `services/notifier.ts` | 100% | 87.50% | 100% | 100% |
-| `store/useAppStore.ts` | 96.77% | 85.57% | 98.90% | 97.19% |
+| `store/useAppStore.ts` | 93.82% | 78.86% | 99.01% | 93.43% |
+| `utils/archiveFilters.ts` | 92.42% | 81.48% | 100% | 98.03% |
 | `utils/calculations.ts` | 100% | 100% | 100% | 100% |
 | `utils/cn.ts` | 100% | 100% | 100% | 100% |
+| `utils/exerciseHistory.ts` | 92.72% | 81.81% | 100% | 97.61% |
+| `utils/mealMath.ts` | 100% | 62.5% | 100% | 100% |
+| `utils/workoutMigrations.ts` | 98.59% | 85% | 100% | 100% |
 
-> Presentational pages (Dashboard, WeeklyPlan, ExerciseLibrary, BodyMetrics, CalorieTracker, Progress, Settings, AppLayout) are intentionally left out of the unit-test coverage because they render on top of the already fully-covered store, hooks, utilities and data — and are better verified with end-to-end tests.
+> Presentational pages (Dashboard, WeeklyPlan, ExerciseLibrary, BodyMetrics, CalorieTracker, Progress, Settings, AppLayout) and the `SavedMealEditor` modal form are intentionally left out of the unit-test coverage because they render on top of the already fully-covered store, hooks, utilities and data — and are better verified with end-to-end tests.
 
 ### Test suites
 
@@ -445,16 +485,23 @@ npm run test:coverage   # with V8 coverage reporter
 |-------|:-----:|-------|
 | `store.test.ts` | 53 | Zustand actions, drafts, streaks, PR detection, reopen, `startedAt` |
 | `calculations.test.ts` | 39 | BMI, BFE, calorie target, protein, formatters |
-| `defaultPlan.test.ts` | 13 | Default PPL plan shape & constraints |
-| `exercises.test.ts` | 11 | Exercise database integrity |
-| `firestoreStorage.test.ts` | 11 | `getItem` / `setItem` / `removeItem` happy & error paths |
+| `defaultPlan.test.ts` | 17 | Default PPL plan shape, forearm split, calf swap, MAV quad cap |
+| `exerciseHistory.test.ts` | 17 | Rep-target parsing, prior-session lookup, smart-overload heuristics |
+| `workoutMigrations.test.ts` | 15 | v3 schema rewrite — forearm split, calf swap, leg-ext consolidation, PR recompute |
+| `exercises.test.ts` | 14 | Exercise database integrity, decoupled forearms, seated calf, retired ids |
+| `archiveFilters.test.ts` | 13 | Exercise / muscle / day / date filters with AND-composition |
+| `savedMeals.test.tsx` | 13 | Saved-meal totals math, CRUD, apply-with-overrides, chip-bar UI |
 | `setInput.test.tsx` | 11 | Mobile layout, copy-previous, edit-mode, PR trophy |
-| `todayWorkout.test.tsx` | 8 | Full page flow, draft persistence, reopen, auto-resume |
+| `firestoreStorage.test.ts` | 11 | `getItem` / `setItem` / `removeItem` happy & error paths |
+| `gemini.test.ts` | 9 | Prompt builder (with / without / whitespace / over-long descriptions); SDK mocked |
 | `cn.test.ts` | 8 | `clsx` + `tailwind-merge` helper |
+| `todayWorkout.test.tsx` | 8 | Full page flow, draft persistence, reopen, auto-resume |
+| `previousLogsModal.test.tsx` | 7 | Prior session, PR card, smart-overload headline, multi-week lookup |
 | `notifier.test.ts` | 6 | Toast push / dismiss / auto-expire / subscribe |
+| `workoutArchive.test.tsx` | 5 | Empty state, ordering, exercise / day filters, expand-to-detail |
 | `useRestTimer.test.ts` | 5 | Countdown, pause/resume, reset, progress |
-| `routeErrorBoundary.test.tsx` | 4 | Scoped fallback UI, retry, default label |
 | `localStorage.test.ts` | 4 | Cloud-only stub throws as expected |
+| `routeErrorBoundary.test.tsx` | 4 | Scoped fallback UI, retry, default label |
 | `app-fallback.test.tsx` | 3 | ErrorFallback SSR + reload click |
 
 ---
@@ -546,11 +593,21 @@ You shouldn't — every keystroke is debounced (350 ms) into `workoutDrafts` and
 
 ## 🗺 Roadmap
 
+### Recently shipped
+- [x] **Previous Logs popup** with double-progression smart-overload suggestion
+- [x] **Workout Archive** page with exercise / muscle / day / date filters
+- [x] **Saved Meals** templates with one-tap logging and macro derivation from items
+- [x] **AI meal description** input that augments image-only analysis
+- [x] **v3 persisted-data migration** that rewrites legacy exercise IDs and rebuilds PRs
+
+### Next up
 - [ ] Per-user Firebase Auth (currently single-doc multi-device)
 - [ ] Apple Health / Google Fit import
 - [ ] Rest-timer customization per exercise
 - [ ] Shareable PR cards
 - [ ] Offline-first queue (still cloud-primary, but survives disconnects)
+- [ ] Saved Meals: scaling factor on apply (e.g. eat half a template)
+- [ ] Workout Archive: CSV export of the filtered slice
 
 ---
 

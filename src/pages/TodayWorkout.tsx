@@ -13,6 +13,7 @@ import {
   X,
   Dumbbell,
   Flame,
+  History,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { getExerciseById } from '@/data/exercises';
@@ -20,6 +21,7 @@ import { useRestTimer } from '@/hooks/useRestTimer';
 import { formatDuration } from '@/utils/calculations';
 import { cn } from '@/utils/cn';
 import PageHeader from '@/components/PageHeader';
+import PreviousLogsModal from '@/components/workout/PreviousLogsModal';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -45,6 +47,7 @@ export default function TodayWorkout() {
   const [elapsed, setElapsed] = useState(0);
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [isEditingCompleted, setIsEditingCompleted] = useState(false);
+  const [historyExerciseId, setHistoryExerciseId] = useState<string | null>(null);
 
   const activeLog = workoutLogs.find((l) => l.id === activeWorkoutId);
   const completedToday = workoutLogs.find((l) => l.date === todayStr && l.completed);
@@ -339,7 +342,22 @@ export default function TodayWorkout() {
 
               {isExpanded && isWorkoutActive && (
                 <div className="px-3 sm:px-4 pb-4 border-t border-iron-200/60 dark:border-iron-800 bg-iron-50/60 dark:bg-iron-950/40">
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold text-iron-500 dark:text-iron-400">
+                      Working Sets
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setHistoryExerciseId(planEx.exerciseId)}
+                      aria-label={`View previous logs for ${exercise?.name ?? 'this exercise'}`}
+                      title="Previous logs · Smart overload"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-display uppercase tracking-wider font-bold border border-primary-200 dark:border-primary-900/60 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-200 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors"
+                    >
+                      <History size={14} />
+                      <span>Last Logs</span>
+                    </button>
+                  </div>
+                  <div className="mt-2 space-y-2">
                     {Array.from({ length: planEx.targetSets }, (_, i) => i + 1).map((setNum) => {
                       const logged = loggedEx?.sets.find((s) => s.setNumber === setNum);
                       const previous = loggedEx?.sets.find((s) => s.setNumber === setNum - 1);
@@ -373,6 +391,19 @@ export default function TodayWorkout() {
           );
         })}
       </div>
+
+      {/* Previous Logs popup — mounted only when an exercise card has been opened by the user. */}
+      {historyExerciseId && (
+        <PreviousLogsModal
+          exerciseId={historyExerciseId}
+          beforeDate={todayStr}
+          excludeWorkoutId={activeWorkoutId ?? undefined}
+          targetReps={
+            todayPlan.exercises.find((e) => e.exerciseId === historyExerciseId)?.targetReps
+          }
+          onClose={() => setHistoryExerciseId(null)}
+        />
+      )}
 
       {/* Complete Button */}
       {isWorkoutActive && (

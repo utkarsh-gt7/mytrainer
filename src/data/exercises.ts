@@ -40,7 +40,8 @@ export const exerciseDatabase: Exercise[] = [
   { id: 'hammer-rope', name: 'Hammer Curl Rope', muscleGroups: ['biceps', 'forearms'], equipment: 'cable' },
 
   /* ─── Forearms ─── */
-  { id: 'forearm-curls', name: 'Forearm Curls + Extensions', muscleGroups: ['forearms'], equipment: 'dumbbell' },
+  { id: 'forearm-curls', name: 'Forearm Curls', muscleGroups: ['forearms'], equipment: 'dumbbell' },
+  { id: 'forearm-ext', name: 'Forearm Extensions', muscleGroups: ['forearms'], equipment: 'dumbbell' },
 
   /* ─── Quads ─── */
   { id: 'back-squat', name: 'Back Squat', muscleGroups: ['quads', 'glutes'], equipment: 'barbell' },
@@ -48,7 +49,6 @@ export const exerciseDatabase: Exercise[] = [
   { id: 'leg-ext', name: 'Leg Extensions', muscleGroups: ['quads'], equipment: 'machine' },
   { id: 'hack-squat', name: 'Hack Squat', muscleGroups: ['quads'], equipment: 'machine' },
   { id: 'walking-lunge', name: 'Walking Lunges', muscleGroups: ['quads', 'glutes'], equipment: 'dumbbell' },
-  { id: 'leg-ext-sat', name: 'Leg Extension', muscleGroups: ['quads'], equipment: 'machine' },
 
   /* ─── Hamstrings ─── */
   { id: 'rdl', name: 'Romanian Deadlift', muscleGroups: ['hamstrings', 'glutes'], equipment: 'barbell' },
@@ -60,6 +60,7 @@ export const exerciseDatabase: Exercise[] = [
 
   /* ─── Calves ─── */
   { id: 'standing-calf', name: 'Standing Calf Raise', muscleGroups: ['calves'], equipment: 'machine' },
+  { id: 'seated-calf', name: 'Seated Calf Raise', muscleGroups: ['calves'], equipment: 'machine' },
 
   /* ─── Abs ─── */
   { id: 'cable-crunch', name: 'Cable Crunch', muscleGroups: ['abs'], equipment: 'cable' },

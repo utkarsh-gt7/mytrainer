@@ -40,6 +40,26 @@ describe('getExerciseById', () => {
   });
 });
 
+describe('decoupled forearm + calf catalog', () => {
+  it('lists Forearm Curls and Forearm Extensions as separate exercises', () => {
+    const curls = getExerciseById('forearm-curls');
+    const ext = getExerciseById('forearm-ext');
+    expect(curls?.name).toBe('Forearm Curls');
+    expect(ext?.name).toBe('Forearm Extensions');
+    expect(curls?.muscleGroups).toContain('forearms');
+    expect(ext?.muscleGroups).toContain('forearms');
+  });
+
+  it('exposes both Standing and Seated calf raise variants', () => {
+    expect(getExerciseById('standing-calf')?.name).toBe('Standing Calf Raise');
+    expect(getExerciseById('seated-calf')?.name).toBe('Seated Calf Raise');
+  });
+
+  it('retires the legacy leg-ext-sat duplicate id', () => {
+    expect(getExerciseById('leg-ext-sat')).toBeUndefined();
+  });
+});
+
 describe('searchExercises', () => {
   it('finds exercises by name', () => {
     const results = searchExercises('bench');

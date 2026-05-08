@@ -79,4 +79,46 @@ describe('defaultWorkoutPlan', () => {
       });
     });
   });
+
+  it('logs forearm curls and extensions as separate exercises on pull days', () => {
+    const tuesday = defaultWorkoutPlan.find((d) => d.id === 'tuesday')!;
+    const friday = defaultWorkoutPlan.find((d) => d.id === 'friday')!;
+    for (const day of [tuesday, friday]) {
+      const ids = day.exercises.map((e) => e.exerciseId);
+      expect(ids).toContain('forearm-curls');
+      expect(ids).toContain('forearm-ext');
+    }
+  });
+
+  it('does not reference the retired leg-ext-sat id', () => {
+    defaultWorkoutPlan.forEach((day) => {
+      day.exercises.forEach((ex) => {
+        expect(ex.exerciseId).not.toBe('leg-ext-sat');
+      });
+    });
+  });
+
+  it('uses seated calf raise on Saturday and standing on Wednesday', () => {
+    const wed = defaultWorkoutPlan.find((d) => d.id === 'wednesday')!;
+    const sat = defaultWorkoutPlan.find((d) => d.id === 'saturday')!;
+    expect(wed.exercises.some((e) => e.exerciseId === 'standing-calf')).toBe(true);
+    expect(wed.exercises.some((e) => e.exerciseId === 'seated-calf')).toBe(false);
+    expect(sat.exercises.some((e) => e.exerciseId === 'seated-calf')).toBe(true);
+    expect(sat.exercises.some((e) => e.exerciseId === 'standing-calf')).toBe(false);
+  });
+
+  it('caps weekly direct quad volume at the recommended MAV ceiling', () => {
+    const quadExerciseIds = new Set(['back-squat', 'leg-press', 'leg-ext', 'hack-squat', 'walking-lunge']);
+    const weeklyQuadSets = defaultWorkoutPlan.reduce((sum, day) => {
+      return (
+        sum +
+        day.exercises
+          .filter((e) => quadExerciseIds.has(e.exerciseId))
+          .reduce((s, e) => s + e.targetSets, 0)
+      );
+    }, 0);
+    // Hypertrophy science: quads MAV is ~12-18 sets/wk for natural lifters in recomp.
+    expect(weeklyQuadSets).toBeLessThanOrEqual(18);
+    expect(weeklyQuadSets).toBeGreaterThanOrEqual(12);
+  });
 });

@@ -15,6 +15,11 @@ import type {
 import { defaultWorkoutPlan } from '@/data/defaultPlan';
 import { exerciseDatabase } from '@/data/exercises';
 import { generateId, calculateBMI } from '@/utils/calculations';
+import {
+  migrateWorkoutLogV3,
+  migrateWorkoutPlanV3,
+  recomputePersonalRecords,
+} from '@/utils/workoutMigrations';
 import { isFirebaseConfigured, db, doc, setDoc, getDoc } from '@/services/firebase';
 import { notify } from '@/services/notifier';
 
@@ -509,7 +514,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'fitness-tracker-storage',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => firestoreStorage),
       /** Safely migrate older persisted payloads so missing fields don't crash the app. */
       migrate: (persisted, fromVersion) => {
@@ -517,6 +522,16 @@ export const useAppStore = create<AppState>()(
         const migrated: Partial<AppState> = { ...safe };
         if (fromVersion < 2) {
           migrated.workoutDrafts = safe.workoutDrafts ?? {};
+        }
+        if (fromVersion < 3) {
+          /* v2→v3: decoupled forearm work, Sat seated calf, retired leg-ext-sat. */
+          const migratedLogs = (safe.workoutLogs ?? []).map(migrateWorkoutLogV3);
+          const { logs, personalRecords } = recomputePersonalRecords(migratedLogs);
+          migrated.workoutLogs = logs;
+          migrated.personalRecords = personalRecords;
+          if (safe.workoutPlan) {
+            migrated.workoutPlan = migrateWorkoutPlanV3(safe.workoutPlan);
+          }
         }
         return migrated as AppState;
       },

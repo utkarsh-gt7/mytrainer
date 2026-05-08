@@ -127,6 +127,21 @@ export interface Meal {
   items: FoodItem[];
 }
 
+/**
+ * A reusable meal definition the user can stash and tap-to-add to any day's
+ * calorie log. Macros are derived from `items` so they never drift.
+ */
+export interface SavedMeal {
+  id: string;
+  name: string;
+  /** Default HH:MM time used when applying without an explicit override. */
+  defaultTime?: string;
+  items: FoodItem[];
+  notes?: string;
+  /** Unix ms timestamp — used to surface the most recently added template first. */
+  createdAt: number;
+}
+
 export interface CalorieLog {
   id: string;
   date: string;

@@ -1,17 +1,19 @@
 import { useState, useRef } from 'react';
-import { Camera, Plus, Trash2, Footprints, Heart, Droplets, Loader2, AlertCircle, Utensils } from 'lucide-react';
+import { Camera, Plus, Trash2, Footprints, Heart, Droplets, Loader2, AlertCircle, Utensils, Bookmark } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import { useAppStore } from '@/store/useAppStore';
 import { analyzeFoodImage, isGeminiConfigured } from '@/services/gemini';
 import { getDailyCalorieTarget } from '@/utils/calculations';
 import type { FoodItem } from '@/types';
 import PageHeader from '@/components/PageHeader';
+import SavedMealsBar from '@/components/nutrition/SavedMealsBar';
 import { notify } from '@/services/notifier';
 
 const MACRO_COLORS = { protein: '#2f8dff', carbs: '#22ac5c', fat: '#f0b429' };
 
 export default function CalorieTracker() {
-  const { calorieLogs, addMeal, removeMeal, updateSteps, updateCardio, updateWater, profile } = useAppStore();
+  const { calorieLogs, addMeal, removeMeal, updateSteps, updateCardio, updateWater, profile, addSavedMeal } =
+    useAppStore();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showMealForm, setShowMealForm] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -19,6 +21,7 @@ export default function CalorieTracker() {
   const [mealTime, setMealTime] = useState('12:00');
   const [items, setItems] = useState<FoodItem[]>([]);
   const [manualItem, setManualItem] = useState({ name: '', quantity: '', calories: '', protein: '', carbs: '', fat: '' });
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const todayLog = calorieLogs.find((l) => l.date === selectedDate);
@@ -114,10 +117,21 @@ export default function CalorieTracker() {
       fat: totalF,
       items,
     });
-    notify.success('Meal saved', `${totalC} cal · ${totalP}g protein`);
+    if (saveAsTemplate) {
+      addSavedMeal({
+        name: mealName.trim(),
+        defaultTime: mealTime,
+        items: items.map((it) => ({ ...it })),
+      });
+    }
+    notify.success(
+      saveAsTemplate ? 'Meal saved & stashed' : 'Meal saved',
+      `${totalC} cal · ${totalP}g protein`,
+    );
     setShowMealForm(false);
     setItems([]);
     setMealName('');
+    setSaveAsTemplate(false);
   };
 
   const getVerdict = () => {
@@ -271,6 +285,9 @@ export default function CalorieTracker() {
         </div>
       </div>
 
+      {/* Saved Meals — one-tap log for the user's regular meals. */}
+      <SavedMealsBar selectedDate={selectedDate} />
+
       {/* Add Meal Button */}
       <button
         onClick={() => setShowMealForm(true)}
@@ -404,6 +421,23 @@ export default function CalorieTracker() {
                   </div>
                 </div>
               )}
+
+              <label className="flex items-start gap-2 cursor-pointer select-none p-2 rounded-lg border border-iron-200 dark:border-iron-700 bg-iron-50 dark:bg-iron-800/40 hover:border-nutrition-400 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={saveAsTemplate}
+                  onChange={(e) => setSaveAsTemplate(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-nutrition-500"
+                />
+                <span className="flex-1 text-xs">
+                  <span className="font-semibold dark:text-white inline-flex items-center gap-1">
+                    <Bookmark size={12} className="text-nutrition-500" /> Save as template
+                  </span>
+                  <span className="block text-iron-500 dark:text-iron-400 mt-0.5">
+                    Stash this meal so you can one-tap it later from the Saved Meals bar.
+                  </span>
+                </span>
+              </label>
 
               <button onClick={saveMeal} disabled={items.length === 0}
                 className="w-full py-2.5 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed">

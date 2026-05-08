@@ -7,6 +7,7 @@ import type {
   BodyMetrics,
   CalorieLog,
   Meal,
+  SavedMeal,
   UserProfile,
   Exercise,
   Streak,
@@ -15,6 +16,7 @@ import type {
 import { defaultWorkoutPlan } from '@/data/defaultPlan';
 import { exerciseDatabase } from '@/data/exercises';
 import { generateId, calculateBMI } from '@/utils/calculations';
+import { totalsForItems } from '@/utils/mealMath';
 import {
   migrateWorkoutLogV3,
   migrateWorkoutPlanV3,
@@ -140,6 +142,17 @@ interface AppState {
   updateCardio: (date: string, minutes: number) => void;
   updateWater: (date: string, liters: number) => void;
   getTodayCalories: () => CalorieLog | undefined;
+
+  /* Saved Meals (templates) */
+  savedMeals: SavedMeal[];
+  addSavedMeal: (meal: Omit<SavedMeal, 'id' | 'createdAt'>) => string;
+  updateSavedMeal: (id: string, updates: Partial<Omit<SavedMeal, 'id' | 'createdAt'>>) => void;
+  removeSavedMeal: (id: string) => void;
+  applySavedMeal: (
+    date: string,
+    savedMealId: string,
+    overrides?: { time?: string; name?: string },
+  ) => void;
 
   /* Personal Records */
   personalRecords: PersonalRecord[];
@@ -506,6 +519,55 @@ export const useAppStore = create<AppState>()(
         return get().calorieLogs.find((l) => l.date === today);
       },
 
+      /* ─── Saved Meals (templates) ─── */
+      savedMeals: [],
+      addSavedMeal: (meal) => {
+        const id = generateId();
+        set((s) => ({
+          savedMeals: [
+            ...s.savedMeals,
+            {
+              id,
+              createdAt: Date.now(),
+              name: meal.name.trim(),
+              defaultTime: meal.defaultTime,
+              items: meal.items,
+              notes: meal.notes,
+            },
+          ],
+        }));
+        return id;
+      },
+      updateSavedMeal: (id, updates) =>
+        set((s) => ({
+          savedMeals: s.savedMeals.map((m) =>
+            m.id === id
+              ? {
+                  ...m,
+                  ...updates,
+                  name: updates.name !== undefined ? updates.name.trim() : m.name,
+                }
+              : m,
+          ),
+        })),
+      removeSavedMeal: (id) =>
+        set((s) => ({ savedMeals: s.savedMeals.filter((m) => m.id !== id) })),
+      applySavedMeal: (date, savedMealId, overrides) => {
+        const template = get().savedMeals.find((m) => m.id === savedMealId);
+        if (!template) return;
+        const totals = totalsForItems(template.items);
+        const time =
+          overrides?.time ??
+          template.defaultTime ??
+          new Date().toTimeString().slice(0, 5);
+        get().addMeal(date, {
+          name: overrides?.name ?? template.name,
+          time,
+          ...totals,
+          items: template.items.map((it) => ({ ...it })),
+        });
+      },
+
       /* ─── Personal Records ─── */
       personalRecords: [],
 
@@ -532,6 +594,8 @@ export const useAppStore = create<AppState>()(
           if (safe.workoutPlan) {
             migrated.workoutPlan = migrateWorkoutPlanV3(safe.workoutPlan);
           }
+          /* New `savedMeals` slice — seed an empty array so existing users land on a defined value. */
+          migrated.savedMeals = safe.savedMeals ?? [];
         }
         return migrated as AppState;
       },

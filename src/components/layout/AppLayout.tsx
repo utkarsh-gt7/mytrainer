@@ -11,6 +11,7 @@ import {
   Settings,
   Flame,
   MoreHorizontal,
+  Archive,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useAppStore } from '@/store/useAppStore';
@@ -23,6 +24,7 @@ const navItems = [
   { to: '/metrics', icon: Scale, label: 'Body Metrics' },
   { to: '/nutrition', icon: Utensils, label: 'Calorie Tracker' },
   { to: '/progress', icon: TrendingUp, label: 'Progress' },
+  { to: '/archive', icon: Archive, label: 'Workout Archive' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -38,6 +40,7 @@ const moreItems = [
   { to: '/plan', icon: CalendarDays, label: 'Weekly Plan' },
   { to: '/exercises', icon: Library, label: 'Exercise Library' },
   { to: '/metrics', icon: Scale, label: 'Body Metrics' },
+  { to: '/archive', icon: Archive, label: 'Workout Archive' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -56,6 +59,7 @@ export default function AppLayout() {
     '/metrics': { active: 'bg-metrics-50 dark:bg-metrics-900/30 text-metrics-700 dark:text-metrics-300 border-metrics-200 dark:border-metrics-900/60', icon: 'text-metrics-500' },
     '/nutrition': { active: 'bg-nutrition-50 dark:bg-nutrition-900/30 text-nutrition-700 dark:text-nutrition-300 border-nutrition-200 dark:border-nutrition-900/60', icon: 'text-nutrition-500' },
     '/progress': { active: 'bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 border-gold-200 dark:border-gold-900/60', icon: 'text-gold-500' },
+    '/archive': { active: 'bg-iron-100 dark:bg-iron-900/60 text-iron-900 dark:text-white border-iron-300 dark:border-iron-700', icon: 'text-iron-600 dark:text-iron-200' },
     '/settings': { active: 'bg-iron-100 dark:bg-iron-900/60 text-iron-900 dark:text-white border-iron-300 dark:border-iron-700', icon: 'text-iron-500' },
   };
   const defaultAccent = navAccent['/'];

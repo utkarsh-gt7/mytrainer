@@ -1,5 +1,17 @@
 import { useState } from 'react';
-import { User, Sun, Moon, Download, Trash2, Database, Shield, Settings as SettingsIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  User,
+  Sun,
+  Moon,
+  Download,
+  Trash2,
+  Database,
+  Shield,
+  Settings as SettingsIcon,
+  Archive,
+  ChevronRight,
+} from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { isFirebaseConfigured, db, doc, deleteDoc } from '@/services/firebase';
 import { isGeminiConfigured } from '@/services/gemini';
@@ -164,6 +176,28 @@ export default function Settings() {
           className="mt-4 w-full sm:w-auto px-6 py-2.5 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600">
           {saved ? '✓ Saved!' : 'Save Profile'}
         </button>
+      </div>
+
+      {/* Workout Archive */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
+        <h3 className="font-semibold dark:text-white mb-4 flex items-center gap-2">
+          <Archive size={18} /> Training History
+        </h3>
+        <Link
+          to="/archive"
+          className="group flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-iron-200 dark:border-iron-700 bg-iron-50/60 dark:bg-iron-800/40 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold dark:text-white">Workout Archive</p>
+            <p className="text-xs text-iron-500 dark:text-iron-400 mt-0.5">
+              Search, filter and revisit every session — by exercise, day, muscle group or date.
+            </p>
+          </div>
+          <ChevronRight
+            size={18}
+            className="text-iron-400 group-hover:text-primary-500 flex-shrink-0"
+          />
+        </Link>
       </div>
 
       {/* Service Status */}

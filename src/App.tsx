@@ -11,6 +11,7 @@ import BodyMetrics from '@/pages/BodyMetrics';
 import CalorieTracker from '@/pages/CalorieTracker';
 import Progress from '@/pages/Progress';
 import Settings from '@/pages/Settings';
+import WorkoutArchive from '@/pages/WorkoutArchive';
 import { isFirebaseConfigured } from '@/services/firebase';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="/metrics" element={<Guarded label="Body Metrics"><BodyMetrics /></Guarded>} />
           <Route path="/nutrition" element={<Guarded label="Nutrition"><CalorieTracker /></Guarded>} />
           <Route path="/progress" element={<Guarded label="Progress"><Progress /></Guarded>} />
+          <Route path="/archive" element={<Guarded label="Workout Archive"><WorkoutArchive /></Guarded>} />
           <Route path="/settings" element={<Guarded label="Settings"><Settings /></Guarded>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

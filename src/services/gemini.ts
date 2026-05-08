@@ -19,7 +19,7 @@ export interface FoodAnalysisResult {
   confidence: 'high' | 'medium' | 'low';
 }
 
-const ANALYSIS_PROMPT = `Analyze this food image and estimate the nutritional content.
+const BASE_ANALYSIS_PROMPT = `Analyze this food image and estimate the nutritional content.
 Return a JSON object with this exact structure (no markdown, just pure JSON):
 {
   "items": [
@@ -39,6 +39,24 @@ Return a JSON object with this exact structure (no markdown, just pure JSON):
   "confidence": "high" | "medium" | "low"
 }
 Be as accurate as possible with portions visible in the image. If uncertain, lean toward average serving sizes.`;
+
+/**
+ * Compose the full prompt: when the user supplies a free-text description
+ * (e.g. cooking method, missing brand, hidden sauces), append it so the
+ * model can correct its visual estimates with that context.
+ */
+export function buildAnalysisPrompt(description?: string | null): string {
+  const trimmed = description?.trim();
+  if (!trimmed) return BASE_ANALYSIS_PROMPT;
+  // Cap the description so a stray paste can't blow out the token budget.
+  const safeDesc = trimmed.slice(0, 600);
+  return `${BASE_ANALYSIS_PROMPT}
+
+Additional context from the user (use this to refine quantities, ingredients, cooking methods, hidden oils/sugars, brands, or anything not visible from the picture alone):
+"""
+${safeDesc}
+"""`;
+}
 
 function sanitizeAnalysis(raw: unknown): FoodAnalysisResult | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -69,10 +87,11 @@ function sanitizeAnalysis(raw: unknown): FoodAnalysisResult | null {
 
 export async function analyzeFoodImage(
   imageFile: File,
+  description?: string,
 ): Promise<FoodAnalysisResult | null> {
   if (!genAI) {
     console.warn('Gemini API not configured. Set VITE_GEMINI_API_KEY.');
-    return getMockAnalysis();
+    return getMockAnalysis(description);
   }
   if (!imageFile || !imageFile.type.startsWith('image/')) {
     console.warn('analyzeFoodImage called with a non-image file.');
@@ -90,7 +109,8 @@ export async function analyzeFoodImage(
       },
     };
 
-    const result = await model.generateContent([ANALYSIS_PROMPT, imagePart]);
+    const prompt = buildAnalysisPrompt(description);
+    const result = await model.generateContent([prompt, imagePart]);
     const text = result.response.text();
 
     const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -120,10 +140,14 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-function getMockAnalysis(): FoodAnalysisResult {
+function getMockAnalysis(description?: string): FoodAnalysisResult {
+  // The description is reflected in the mock item name so dev-mode users
+  // can verify their description actually reached the function.
+  const trimmed = description?.trim();
+  const sampleName = trimmed ? `Sample Food (${trimmed.slice(0, 40)})` : 'Sample Food';
   return {
     items: [
-      { name: 'Sample Food', quantity: '1 serving', calories: 350, protein: 25, carbs: 40, fat: 10 },
+      { name: sampleName, quantity: '1 serving', calories: 350, protein: 25, carbs: 40, fat: 10 },
     ],
     totalCalories: 350,
     totalProtein: 25,

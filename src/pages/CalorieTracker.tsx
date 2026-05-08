@@ -21,6 +21,7 @@ export default function CalorieTracker() {
   const [mealTime, setMealTime] = useState('12:00');
   const [items, setItems] = useState<FoodItem[]>([]);
   const [manualItem, setManualItem] = useState({ name: '', quantity: '', calories: '', protein: '', carbs: '', fat: '' });
+  const [aiDescription, setAiDescription] = useState('');
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,11 +56,14 @@ export default function CalorieTracker() {
     }
     setAnalyzing(true);
     try {
-      const result = await analyzeFoodImage(file);
+      const result = await analyzeFoodImage(file, aiDescription);
       if (result && result.items.length > 0) {
         setItems(result.items);
         setMealName((prev) => prev || 'AI Analyzed Meal');
-        notify.success('Food analyzed', `${result.items.length} item(s) detected.`);
+        notify.success(
+          'Food analyzed',
+          `${result.items.length} item(s) detected${aiDescription.trim() ? ' (with your context)' : ''}.`,
+        );
       } else {
         notify.warning('Could not analyze', 'Add the items manually below.');
       }
@@ -132,6 +136,7 @@ export default function CalorieTracker() {
     setItems([]);
     setMealName('');
     setSaveAsTemplate(false);
+    setAiDescription('');
   };
 
   const getVerdict = () => {
@@ -352,28 +357,53 @@ export default function CalorieTracker() {
               </div>
 
               {/* AI Image Analysis */}
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="p-6 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-pointer hover:border-primary-500 dark:hover:border-primary-500 text-center transition-colors"
-              >
-                {analyzing ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 size={24} className="animate-spin text-primary-500" />
-                    <p className="text-sm text-gray-500">Analyzing food image...</p>
-                  </div>
-                ) : (
-                  <>
-                    <Camera size={24} className="mx-auto text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500">Take a photo or upload an image</p>
-                    <p className="text-xs text-gray-400 mt-1">AI will estimate calories & macros</p>
-                    {!isGeminiConfigured() && (
-                      <p className="text-xs text-orange-400 mt-2 flex items-center justify-center gap-1">
-                        <AlertCircle size={12} /> Set VITE_GEMINI_API_KEY for AI analysis
-                      </p>
-                    )}
-                  </>
-                )}
-                <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full p-6 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-pointer hover:border-primary-500 dark:hover:border-primary-500 text-center transition-colors"
+                  aria-label="Upload food photo for AI analysis"
+                >
+                  {analyzing ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 size={24} className="animate-spin text-primary-500" />
+                      <p className="text-sm text-gray-500">Analyzing food image...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <Camera size={24} className="mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500">Take a photo or upload an image</p>
+                      <p className="text-xs text-gray-400 mt-1">AI will estimate calories &amp; macros</p>
+                      {!isGeminiConfigured() && (
+                        <p className="text-xs text-orange-400 mt-2 flex items-center justify-center gap-1">
+                          <AlertCircle size={12} /> Set VITE_GEMINI_API_KEY for AI analysis
+                        </p>
+                      )}
+                    </>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                </button>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-iron-500 dark:text-iron-400">
+                    Description (optional) — refines the estimate
+                  </span>
+                  <textarea
+                    rows={2}
+                    maxLength={600}
+                    value={aiDescription}
+                    onChange={(e) => setAiDescription(e.target.value)}
+                    placeholder="e.g. pan-fried in 1 tbsp olive oil, 200g chicken breast, side of basmati rice…"
+                    className="mt-1 w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white resize-none focus:ring-2 focus:ring-primary-500 outline-none"
+                    aria-label="Optional description to refine AI analysis"
+                  />
+                </label>
               </div>
 
               {/* Manual Entry */}

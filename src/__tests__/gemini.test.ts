@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 /**
  * Stub the Google Generative AI SDK so the analyzer never makes a real
@@ -13,7 +13,20 @@ vi.mock('@google/generative-ai', () => ({
   },
 }));
 
-import { analyzeFoodImage, buildAnalysisPrompt } from '@/services/gemini';
+import { analyzeFoodImage, buildAnalysisPrompt, isGeminiConfigured } from '@/services/gemini';
+
+/**
+ * `gemini.ts` reads `VITE_GEMINI_API_KEY` lazily, so we can force the
+ * SDK-backed branch in any environment (CI never sets this var) by
+ * stubbing it before the analyser tests run.
+ */
+beforeAll(() => {
+  vi.stubEnv('VITE_GEMINI_API_KEY', 'test-key');
+});
+
+afterAll(() => {
+  vi.unstubAllEnvs();
+});
 
 describe('buildAnalysisPrompt', () => {
   it('returns the base prompt unchanged when no description is supplied', () => {
@@ -103,5 +116,46 @@ describe('analyzeFoodImage', () => {
     const result = await analyzeFoodImage(makeImageFile(), 'context');
     expect(result).toBeNull();
     consoleErr.mockRestore();
+  });
+});
+
+describe('keyless fallback (no VITE_GEMINI_API_KEY)', () => {
+  /*
+   * Verify the env-driven branching: when the env var is missing the SDK
+   * must not be touched and the function returns mock data so the dev
+   * preview keeps working without a real key.
+   */
+  beforeEach(() => {
+    vi.stubEnv('VITE_GEMINI_API_KEY', '');
+    generateContent.mockReset();
+  });
+
+  afterAll(() => {
+    vi.stubEnv('VITE_GEMINI_API_KEY', 'test-key');
+  });
+
+  it('reports unconfigured', () => {
+    expect(isGeminiConfigured()).toBe(false);
+  });
+
+  it('returns mock data without invoking the SDK', async () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = await analyzeFoodImage(
+      new File([new Uint8Array([1, 2])], 'meal.png', { type: 'image/png' }),
+      'whatever',
+    );
+    expect(result).not.toBeNull();
+    expect(result!.items[0].name).toContain('whatever');
+    expect(generateContent).not.toHaveBeenCalled();
+    consoleWarn.mockRestore();
+  });
+
+  it('still rejects non-image files even with no key configured', async () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = await analyzeFoodImage(
+      new File([new Uint8Array([1])], 'notes.txt', { type: 'text/plain' }),
+    );
+    expect(result).toBeNull();
+    consoleWarn.mockRestore();
   });
 });

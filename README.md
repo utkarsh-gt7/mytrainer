@@ -11,7 +11,7 @@
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript)
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite)
-![Tests](https://img.shields.io/badge/tests-262%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-265%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/lines-88.8%25-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -287,7 +287,7 @@ fitness-tracker/
 │   │   ├── exerciseHistory.ts Find prior sessions + smart-overload suggestion
 │   │   ├── mealMath.ts        Sum macros across food items
 │   │   └── workoutMigrations.ts v3 schema rewrites + PR recomputation
-│   ├── __tests__/             20 test suites · 262 tests
+│   ├── __tests__/             20 test suites · 265 tests
 │   ├── App.tsx
 │   └── main.tsx
 ├── netlify.toml
@@ -439,12 +439,12 @@ npm run test:watch      # watch mode
 npm run test:coverage   # with V8 coverage reporter
 ```
 
-### Latest run (262 tests · 20 suites)
+### Latest run (265 tests · 20 suites)
 
 | Metric | Result |
 |--------|-------:|
 | **Test files** | **20 passed** |
-| **Tests** | **262 passed** |
+| **Tests** | **265 passed** |
 | **Line coverage** | **🟢 88.80%** |
 | **Statement coverage** | 🟢 86.96% |
 | **Function coverage** | 🟢 85.00% |
@@ -493,7 +493,7 @@ npm run test:coverage   # with V8 coverage reporter
 | `savedMeals.test.tsx` | 13 | Saved-meal totals math, CRUD, apply-with-overrides, chip-bar UI |
 | `setInput.test.tsx` | 11 | Mobile layout, copy-previous, edit-mode, PR trophy |
 | `firestoreStorage.test.ts` | 11 | `getItem` / `setItem` / `removeItem` happy & error paths |
-| `gemini.test.ts` | 9 | Prompt builder (with / without / whitespace / over-long descriptions); SDK mocked |
+| `gemini.test.ts` | 12 | Prompt builder; SDK-mocked analyser; keyless-fallback branch with env stubbed via `vi.stubEnv` |
 | `cn.test.ts` | 8 | `clsx` + `tailwind-merge` helper |
 | `todayWorkout.test.tsx` | 8 | Full page flow, draft persistence, reopen, auto-resume |
 | `previousLogsModal.test.tsx` | 7 | Prior session, PR card, smart-overload headline, multi-week lookup |

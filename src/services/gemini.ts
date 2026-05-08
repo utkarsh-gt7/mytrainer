@@ -1,13 +1,29 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { FoodItem } from '@/types';
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+/**
+ * Read the API key lazily on every check so test environments can
+ * stub it via `vi.stubEnv` even though the module was already imported.
+ * (`import.meta.env` values are immutable at module-load time otherwise.)
+ */
+function readApiKey(): string {
+  return (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
+}
 
-const isGeminiConfigured = (): boolean => Boolean(API_KEY);
+const isGeminiConfigured = (): boolean => Boolean(readApiKey());
 
-let genAI: GoogleGenerativeAI | null = null;
-if (isGeminiConfigured()) {
-  genAI = new GoogleGenerativeAI(API_KEY);
+/**
+ * Construct the Gemini client on demand. Memoised against the key so a
+ * production caller still gets a single instance, but a test-time env
+ * change forces a fresh client.
+ */
+let cachedClient: { key: string; client: GoogleGenerativeAI } | null = null;
+function getClient(): GoogleGenerativeAI | null {
+  const key = readApiKey();
+  if (!key) return null;
+  if (cachedClient && cachedClient.key === key) return cachedClient.client;
+  cachedClient = { key, client: new GoogleGenerativeAI(key) };
+  return cachedClient.client;
 }
 
 export interface FoodAnalysisResult {
@@ -89,17 +105,22 @@ export async function analyzeFoodImage(
   imageFile: File,
   description?: string,
 ): Promise<FoodAnalysisResult | null> {
-  if (!genAI) {
-    console.warn('Gemini API not configured. Set VITE_GEMINI_API_KEY.');
-    return getMockAnalysis(description);
-  }
+  // Validate the file shape first so a stray non-image upload short-circuits
+  // regardless of whether a Gemini key is configured. This mirrors what the
+  // UI guards already enforce and avoids leaking mock data for bad inputs.
   if (!imageFile || !imageFile.type.startsWith('image/')) {
     console.warn('analyzeFoodImage called with a non-image file.');
     return null;
   }
 
+  const client = getClient();
+  if (!client) {
+    console.warn('Gemini API not configured. Set VITE_GEMINI_API_KEY.');
+    return getMockAnalysis(description);
+  }
+
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const imageData = await fileToBase64(imageFile);
     const imagePart = {

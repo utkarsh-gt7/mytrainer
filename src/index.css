@@ -1,83 +1,145 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap');
+/*
+ * Inter Variable — a single, modern variable font replaces the old
+ * Inter + Oswald pairing. Pulling the optimized rsms.me CDN keeps the
+ * weight tiny (~70KB woff2) and gives us the full 100-900 axis without
+ * loading nine individual files.
+ */
+@import url('https://rsms.me/inter/inter.css');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens. Defined as RGB triplets so Tailwind's
+ * `<alpha-value>` placeholder can compose them into final colours
+ * (e.g. `bg-surface/80`). Dark mode flips all surface + text values;
+ * the accent stays warm in both for consistent brand recognition.
+ */
 @layer base {
+  :root {
+    --canvas: 250 250 250;        /* zinc-50  — page background */
+    --surface: 255 255 255;       /* white    — cards, sheets */
+    --surface-2: 244 244 245;     /* zinc-100 — inset / hover */
+    --line: 228 228 231;          /* zinc-200 — default borders */
+    --line-strong: 212 212 216;   /* zinc-300 — emphasised borders */
+    --fg: 24 24 27;               /* zinc-900 — primary text */
+    --fg-muted: 82 82 91;         /* zinc-600 — secondary text */
+    --fg-subtle: 161 161 170;     /* zinc-400 — tertiary / placeholder */
+    --accent: 234 88 12;          /* orange-600 — buttons, focus, accents */
+    --accent-fg: 255 255 255;
+  }
+
+  .dark {
+    --canvas: 9 9 11;             /* zinc-950 */
+    --surface: 24 24 27;          /* zinc-900 */
+    --surface-2: 39 39 42;        /* zinc-800 */
+    --line: 39 39 42;             /* zinc-800 */
+    --line-strong: 63 63 70;      /* zinc-700 */
+    --fg: 250 250 250;            /* zinc-50  */
+    --fg-muted: 161 161 170;      /* zinc-400 */
+    --fg-subtle: 113 113 122;     /* zinc-500 */
+    --accent: 249 115 22;         /* orange-500 — slightly lighter on dark */
+    --accent-fg: 24 24 27;
+  }
+
   * {
-    @apply border-gray-200 dark:border-gray-800;
+    @apply border-line;
     -webkit-tap-highlight-color: transparent;
   }
 
   html {
-    /* Safe area insets for notched phones (iPhone X+) */
+    /* Safe-area insets for notched phones (iPhone X+) */
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
   }
 
   body {
-    @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans antialiased;
+    @apply bg-canvas text-fg font-sans antialiased;
     margin: 0;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
+    text-rendering: optimizeLegibility;
   }
 
-  /* Prevent iOS zoom on input focus — use 16px minimum */
+  @supports (font-variation-settings: normal) {
+    html { font-family: 'Inter var', ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  }
+
+  /* Tabular figures for everything numeric — keeps stat columns aligned */
+  .tabular, [class*="tabular-nums"] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Prevent iOS zoom on input focus — 16px minimum */
   input, select, textarea {
     font-size: 16px !important;
   }
-
   @media (min-width: 768px) {
-    input, select, textarea {
-      font-size: inherit !important;
-    }
+    input, select, textarea { font-size: inherit !important; }
   }
 
+  /* Strip number-input spinners (cleaner UI) */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
-
   input[type="number"] {
     -moz-appearance: textfield;
     appearance: textfield;
   }
 
-  /* Better touch targets */
+  /* Comfortable mobile touch targets without forcing every inline element */
   button, a, [role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
-
-  /* Exception for inline/small UI elements that have parent targets */
   .touch-target-sm {
     min-height: unset;
     min-width: unset;
   }
+
+  /* Headings — Inter at semibold, tight tracking */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-fg font-semibold tracking-tight;
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgb(var(--accent) / 0.2);
+    color: rgb(var(--fg));
+  }
 }
 
 @layer utilities {
+  /* Thin, neutral scrollbars (replaces the gray-400 thumb) */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.gray.400') transparent;
+    scrollbar-color: rgb(var(--line-strong)) transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
-
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: theme('colors.gray.400');
+    background-color: rgb(var(--line-strong));
     border-radius: 3px;
   }
-
-  /* Safe area inset helpers for notched phones */
-  .safe-top {
-    padding-top: env(safe-area-inset-top);
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
   }
 
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+  /* Safe area helpers retained for the layout shell */
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* Reusable focus ring — applied via `focus-ring` for keyboard nav */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
+
+  /* Hide scrollbars on horizontal chip strips while keeping wheel scroll */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
 }

@@ -1,65 +1,40 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * FitTracker Design System
+ * ─────────────────────────
+ * Monochrome neutral base (zinc) with a single warm accent (orange) for
+ * energy and emphasis. Semantic colours are reserved for status/data
+ * (success / warning / danger / info) and used sparingly so the UI
+ * stays calm. No gradient hero panels, no display fonts, no glows.
+ *
+ * Conventions:
+ *  - Surfaces: bg-surface / bg-surface-2 / bg-canvas
+ *  - Text: text-fg / text-fg-muted / text-fg-subtle
+ *  - Borders: border-line / border-line-strong
+ *  - Accent: text-accent / bg-accent / ring-accent
+ *
+ * @type {import('tailwindcss').Config}
+ */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        /* Iron Red — brand / strength / workout */
-        primary: {
-          50: '#fff1f1',
-          100: '#ffe0e0',
-          200: '#ffc2c2',
-          300: '#ff9494',
-          400: '#ff5d5d',
-          500: '#ef2b2b',
-          600: '#d31818',
-          700: '#af1313',
-          800: '#911414',
-          900: '#781818',
-          950: '#410707',
-        },
-        /* Fresh Leaf — nutrition */
-        nutrition: {
-          50: '#effcf3',
-          100: '#d8f7e1',
-          200: '#b3eec6',
-          300: '#7ddda2',
-          400: '#48c47d',
-          500: '#22ac5c',
-          600: '#178a48',
-          700: '#156e3c',
-          800: '#155732',
-          900: '#12482c',
-        },
-        /* Blueprint Blue — measurements / analytics */
-        metrics: {
-          50: '#eef7ff',
-          100: '#d9ecff',
-          200: '#bce0ff',
-          300: '#8ecdff',
-          400: '#58b0ff',
-          500: '#2f8dff',
-          600: '#1a6ff0',
-          700: '#175adc',
-          800: '#1a4aad',
-          900: '#1c3f89',
-        },
-        /* Trophy Gold — achievements / PRs */
-        gold: {
-          50: '#fffbea',
-          100: '#fff3c4',
-          200: '#fce588',
-          300: '#fadb5f',
-          400: '#f7c948',
-          500: '#f0b429',
-          600: '#de911d',
-          700: '#cb6e17',
-          800: '#b44d12',
-          900: '#8d2b0b',
-        },
-        /* Streak Flame */
-        flame: {
+        /* ─── Semantic surface + foreground tokens ────────────────── */
+        canvas: 'rgb(var(--canvas) / <alpha-value>)',
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        'surface-2': 'rgb(var(--surface-2) / <alpha-value>)',
+        line: 'rgb(var(--line) / <alpha-value>)',
+        'line-strong': 'rgb(var(--line-strong) / <alpha-value>)',
+        fg: 'rgb(var(--fg) / <alpha-value>)',
+        'fg-muted': 'rgb(var(--fg-muted) / <alpha-value>)',
+        'fg-subtle': 'rgb(var(--fg-subtle) / <alpha-value>)',
+
+        /* ─── Brand accent ─────────────────────────────────────────
+         * Warm coral-orange — energetic without being loud. Used for
+         * primary buttons, focus rings, active states, key callouts.
+         */
+        accent: {
           50: '#fff7ed',
           100: '#ffedd5',
           200: '#fed7aa',
@@ -70,78 +45,113 @@ export default {
           700: '#c2410c',
           800: '#9a3412',
           900: '#7c2d12',
+          950: '#431407',
+          DEFAULT: '#ea580c',
+          fg: '#ffffff',
         },
-        /* Iron — warm industrial grays for surfaces */
-        iron: {
-          50: '#f6f6f5',
-          100: '#e8e8e6',
-          200: '#d1d1cd',
-          300: '#a9a9a3',
-          400: '#79796f',
-          500: '#55554c',
-          600: '#3f3f38',
-          700: '#2d2d28',
-          800: '#1f1f1c',
-          900: '#121210',
-          950: '#0a0a09',
+
+        /* ─── Status / data tokens (used sparingly) ───────────────── */
+        success: {
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          500: '#10b981',
+          600: '#059669',
+          700: '#047857',
+          DEFAULT: '#10b981',
         },
-        /* Legacy accent kept for chart fills */
-        accent: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
+        warning: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          500: '#f59e0b',
+          600: '#d97706',
+          700: '#b45309',
+          DEFAULT: '#f59e0b',
+        },
+        danger: {
+          50: '#fef2f2',
+          100: '#fee2e2',
+          500: '#ef4444',
+          600: '#dc2626',
+          700: '#b91c1c',
+          DEFAULT: '#ef4444',
+        },
+        info: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          DEFAULT: '#0ea5e9',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Oswald', 'Impact', 'Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        sans: [
+          'Inter var',
+          'Inter',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
+        mono: [
+          'JetBrains Mono',
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          'monospace',
+        ],
+      },
+      fontSize: {
+        /* tighter line-heights for headings; comfortable for body */
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+      },
+      borderRadius: {
+        /* tight, modern corners — md for controls, lg for cards, xl for dialogs */
+        md: '0.5rem',
+        lg: '0.75rem',
+        xl: '1rem',
       },
       boxShadow: {
-        'iron': '0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px -12px rgba(0,0,0,0.5)',
-        'glow-primary': '0 10px 30px -8px rgba(239,43,43,0.45)',
-        'glow-nutrition': '0 10px 30px -8px rgba(34,172,92,0.35)',
-        'glow-metrics': '0 10px 30px -8px rgba(47,141,255,0.35)',
-        'glow-gold': '0 10px 30px -8px rgba(240,180,41,0.45)',
+        /* subtle, single-layer shadows — no glows */
+        xs: '0 1px 1px rgba(0,0,0,0.04)',
+        sm: '0 1px 2px rgba(0,0,0,0.06)',
+        md: '0 4px 12px -2px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04)',
+        lg: '0 10px 24px -4px rgba(0,0,0,0.12), 0 4px 8px -4px rgba(0,0,0,0.04)',
+        'focus': '0 0 0 2px rgb(var(--canvas)), 0 0 0 4px rgb(var(--accent))',
       },
-      backgroundImage: {
-        'hero-workout': 'linear-gradient(135deg, rgba(239,43,43,0.85) 0%, rgba(175,19,19,0.9) 60%, rgba(65,7,7,0.95) 100%)',
-        'hero-nutrition': 'linear-gradient(135deg, rgba(34,172,92,0.85) 0%, rgba(21,110,60,0.9) 60%, rgba(18,72,44,0.95) 100%)',
-        'hero-metrics': 'linear-gradient(135deg, rgba(47,141,255,0.85) 0%, rgba(23,90,220,0.9) 60%, rgba(28,63,137,0.95) 100%)',
-        'hero-progress': 'linear-gradient(135deg, rgba(240,180,41,0.9) 0%, rgba(203,110,23,0.95) 60%, rgba(141,43,11,0.95) 100%)',
-        'hero-plan': 'linear-gradient(135deg, rgba(63,63,56,0.95) 0%, rgba(18,18,16,0.98) 100%)',
-        'hero-library': 'linear-gradient(135deg, rgba(85,85,76,0.95) 0%, rgba(31,31,28,0.98) 100%)',
-        'hero-dashboard': 'linear-gradient(135deg, rgba(239,43,43,0.9) 0%, rgba(249,115,22,0.85) 55%, rgba(240,180,41,0.85) 100%)',
-        'hero-settings': 'linear-gradient(135deg, rgba(63,63,56,0.95) 0%, rgba(18,18,16,0.98) 100%)',
-        'grid-iron': "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)",
-        'noise': "radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)",
+      ringColor: {
+        DEFAULT: 'rgb(var(--accent))',
       },
       animation: {
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'slide-down': 'slideDown 0.3s ease-out',
-        'fade-in': 'fadeIn 0.2s ease-out',
+        'fade-in': 'fadeIn 150ms ease-out',
+        'slide-up': 'slideUp 200ms ease-out',
+        'slide-down': 'slideDown 200ms ease-out',
+        'scale-in': 'scaleIn 150ms ease-out',
       },
       keyframes: {
-        slideUp: {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        slideDown: {
-          '0%': { transform: 'translateY(-10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        slideUp: {
+          '0%': { transform: 'translateY(8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        scaleIn: {
+          '0%': { transform: 'scale(0.96)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+      },
+      transitionTimingFunction: {
+        'out-quart': 'cubic-bezier(0.25, 1, 0.5, 1)',
       },
     },
   },

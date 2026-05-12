@@ -104,6 +104,7 @@ export default function ExerciseLibrary() {
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
+        theme="library"
         icon={Library}
         eyebrow="Reference catalog"
         title="Exercise library"

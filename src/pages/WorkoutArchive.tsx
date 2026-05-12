@@ -97,6 +97,7 @@ export default function WorkoutArchive() {
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
+        theme="archive"
         icon={Archive}
         eyebrow="History"
         title="Workout archive"

@@ -135,6 +135,7 @@ export default function Settings() {
   return (
     <div className="space-y-5 animate-fade-in max-w-2xl">
       <PageHeader
+        theme="settings"
         icon={SettingsIcon}
         eyebrow="Personal setup"
         title="Settings"

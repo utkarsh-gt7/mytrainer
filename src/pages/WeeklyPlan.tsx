@@ -39,6 +39,7 @@ export default function WeeklyPlan() {
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
+        theme="plan"
         icon={CalendarDays}
         eyebrow="Training split"
         title="Weekly plan"

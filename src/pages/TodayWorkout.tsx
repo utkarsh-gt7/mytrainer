@@ -138,6 +138,7 @@ export default function TodayWorkout() {
     return (
       <div className="space-y-5 animate-fade-in">
         <PageHeader
+          theme="workout"
           icon={Dumbbell}
           eyebrow={dayName}
           title="Rest day"
@@ -159,6 +160,7 @@ export default function TodayWorkout() {
     return (
       <div className="space-y-5 animate-fade-in">
         <PageHeader
+          theme="workout"
           icon={Dumbbell}
           eyebrow={`${todayPlan.dayName} · ${todayPlan.focus}`}
           title={todayPlan.label}
@@ -223,6 +225,7 @@ export default function TodayWorkout() {
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
+        theme="workout"
         icon={Dumbbell}
         eyebrow={`${todayPlan.dayName} · ${todayPlan.focus}`}
         title={todayPlan.label}

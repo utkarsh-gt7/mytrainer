@@ -107,6 +107,7 @@ export default function BodyMetrics() {
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
+        theme="metrics"
         icon={Ruler}
         eyebrow="Body composition"
         title="Body metrics"

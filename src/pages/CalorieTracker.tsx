@@ -242,6 +242,7 @@ export default function CalorieTracker() {
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
+        theme="nutrition"
         icon={Utensils}
         eyebrow={isTrainingDay ? 'Training day · fuel up' : 'Rest day · recovery'}
         title="Nutrition"

@@ -86,6 +86,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader
+        theme="dashboard"
         icon={Activity}
         eyebrow={today.toLocaleDateString('en-US', {
           weekday: 'long',

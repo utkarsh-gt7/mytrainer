@@ -238,6 +238,7 @@ export default function Progress() {
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
+        theme="progress"
         icon={Trophy}
         eyebrow="Earned, not given"
         title="Progress"

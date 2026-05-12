@@ -69,12 +69,10 @@ export default function App() {
 
   if (!hydrated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-iron-50 dark:bg-iron-950">
+      <div className="flex items-center justify-center min-h-screen bg-canvas text-fg">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-iron-500 dark:text-iron-400 font-display uppercase tracking-wider">
-            Loading your data...
-          </p>
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-fg-muted">Loading your data…</p>
         </div>
       </div>
     );

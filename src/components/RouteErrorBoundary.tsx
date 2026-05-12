@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui';
 
 interface Props {
   children: ReactNode;
@@ -42,36 +43,28 @@ export default class RouteErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="animate-fade-in">
-        <div className="rounded-2xl border border-primary-200 dark:border-primary-900/60 bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/20 dark:to-iron-900/60 p-6 sm:p-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500/15 border border-primary-500/30">
-            <AlertTriangle className="h-7 w-7 text-primary-600 dark:text-primary-300" />
+        <div className="rounded-xl border border-line bg-surface p-6 sm:p-8 text-center max-w-lg mx-auto">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-danger-100 dark:bg-danger-700/20">
+            <AlertTriangle className="h-6 w-6 text-danger" />
           </div>
-          <h2 className="font-display uppercase tracking-wide text-2xl font-bold text-iron-900 dark:text-white mb-2">
-            {label ? `This ${label} page hit a snag` : 'This page hit a snag'}
+          <h2 className="text-lg font-semibold text-fg tracking-tight mb-2">
+            {label ? `${label} ran into a problem` : 'This page ran into a problem'}
           </h2>
-          <p className="text-sm text-iron-600 dark:text-iron-300 mb-5 max-w-md mx-auto">
-            Nothing else in the app is affected — you can retry the page or jump somewhere else from the navigation.
+          <p className="text-sm text-fg-muted mb-5">
+            Nothing else in the app is affected — retry the page or jump somewhere else from the navigation.
           </p>
           {error?.message && (
-            <p className="text-xs font-mono text-iron-500 dark:text-iron-400 mb-5 break-all">
+            <p className="text-xs font-mono text-fg-subtle mb-5 break-all bg-surface-2 px-3 py-2 rounded-md">
               {error.message}
             </p>
           )}
           <div className="flex items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={this.handleRetry}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary-500 hover:bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-glow-primary"
-            >
-              <RefreshCw size={16} /> Try again
-            </button>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 rounded-lg bg-iron-200 dark:bg-iron-800 hover:bg-iron-300 dark:hover:bg-iron-700 px-4 py-2 text-sm font-semibold text-iron-900 dark:text-white"
-            >
+            <Button variant="primary" onClick={this.handleRetry}>
+              <RefreshCw size={14} /> Try again
+            </Button>
+            <Button variant="secondary" onClick={() => window.location.reload()}>
               Reload app
-            </button>
+            </Button>
           </div>
         </div>
       </div>

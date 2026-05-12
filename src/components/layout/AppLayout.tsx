@@ -13,37 +13,43 @@ import {
   MoreHorizontal,
   Archive,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useAppStore } from '@/store/useAppStore';
 
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/today', icon: Dumbbell, label: "Today's Workout" },
+interface NavItem {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  /** Short label used in the mobile bottom tab bar. */
+  short?: string;
+}
+
+const navItems: NavItem[] = [
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', short: 'Home' },
+  { to: '/today', icon: Dumbbell, label: "Today's Workout", short: 'Workout' },
   { to: '/plan', icon: CalendarDays, label: 'Weekly Plan' },
   { to: '/exercises', icon: Library, label: 'Exercise Library' },
   { to: '/metrics', icon: Scale, label: 'Body Metrics' },
-  { to: '/nutrition', icon: Utensils, label: 'Calorie Tracker' },
-  { to: '/progress', icon: TrendingUp, label: 'Progress' },
+  { to: '/nutrition', icon: Utensils, label: 'Nutrition', short: 'Nutrition' },
+  { to: '/progress', icon: TrendingUp, label: 'Progress', short: 'Progress' },
   { to: '/archive', icon: Archive, label: 'Workout Archive' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-const bottomTabs = [
-  { to: '/', icon: LayoutDashboard, label: 'Home' },
-  { to: '/today', icon: Dumbbell, label: 'Workout' },
-  { to: '/nutrition', icon: Utensils, label: 'Nutrition' },
-  { to: '/progress', icon: TrendingUp, label: 'Progress' },
-  { to: '/more', icon: MoreHorizontal, label: 'More' },
-];
+const bottomTabs = navItems.filter((item) => item.short);
+const moreItems = navItems.filter((item) => !item.short && item.to !== '/');
 
-const moreItems = [
-  { to: '/plan', icon: CalendarDays, label: 'Weekly Plan' },
-  { to: '/exercises', icon: Library, label: 'Exercise Library' },
-  { to: '/metrics', icon: Scale, label: 'Body Metrics' },
-  { to: '/archive', icon: Archive, label: 'Workout Archive' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
-];
-
+/**
+ * AppLayout — the application shell.
+ *
+ * Desktop: a fixed 256px sidebar holds the brand mark, a streak chip,
+ * and the full nav. Mobile: a slim header on top, a 5-slot bottom tab
+ * bar, and a slide-up sheet for items that don't fit in the tabs.
+ *
+ * All chrome uses the new design tokens (canvas / surface / line / fg
+ * / accent) so light/dark mode flips with the root `.dark` class only.
+ */
 export default function AppLayout() {
   const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
@@ -51,103 +57,74 @@ export default function AppLayout() {
 
   const isMoreActive = moreItems.some((item) => item.to === location.pathname);
 
-  const navAccent: Record<string, { active: string; icon: string }> = {
-    '/': { active: 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 border-primary-200 dark:border-primary-900/60', icon: 'text-primary-500' },
-    '/today': { active: 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 border-primary-200 dark:border-primary-900/60', icon: 'text-primary-500' },
-    '/plan': { active: 'bg-iron-100 dark:bg-iron-900/60 text-iron-900 dark:text-white border-iron-300 dark:border-iron-700', icon: 'text-iron-600 dark:text-iron-200' },
-    '/exercises': { active: 'bg-iron-100 dark:bg-iron-900/60 text-iron-900 dark:text-white border-iron-300 dark:border-iron-700', icon: 'text-iron-600 dark:text-iron-200' },
-    '/metrics': { active: 'bg-metrics-50 dark:bg-metrics-900/30 text-metrics-700 dark:text-metrics-300 border-metrics-200 dark:border-metrics-900/60', icon: 'text-metrics-500' },
-    '/nutrition': { active: 'bg-nutrition-50 dark:bg-nutrition-900/30 text-nutrition-700 dark:text-nutrition-300 border-nutrition-200 dark:border-nutrition-900/60', icon: 'text-nutrition-500' },
-    '/progress': { active: 'bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-300 border-gold-200 dark:border-gold-900/60', icon: 'text-gold-500' },
-    '/archive': { active: 'bg-iron-100 dark:bg-iron-900/60 text-iron-900 dark:text-white border-iron-300 dark:border-iron-700', icon: 'text-iron-600 dark:text-iron-200' },
-    '/settings': { active: 'bg-iron-100 dark:bg-iron-900/60 text-iron-900 dark:text-white border-iron-300 dark:border-iron-700', icon: 'text-iron-500' },
-  };
-  const defaultAccent = navAccent['/'];
-
   return (
-    <div className={cn('min-h-screen bg-iron-50 dark:bg-iron-950 transition-colors', darkMode && 'dark')}>
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-iron-950/90 backdrop-blur-md border-b border-iron-200 dark:border-iron-800 px-4 h-14 flex items-center justify-between safe-top">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-flame-500 flex items-center justify-center shadow-glow-primary">
-            <Dumbbell className="text-white" size={16} strokeWidth={2.5} />
-          </div>
-          <span className="font-display uppercase tracking-wide font-bold text-lg dark:text-white">FitTracker</span>
-        </div>
-        {streak.current > 0 && (
-          <div className="flex items-center gap-1 text-flame-500">
-            <Flame size={16} className="touch-target-sm" />
-            <span className="text-sm font-bold tabular-nums">{streak.current}</span>
-          </div>
-        )}
+    <div className={cn('min-h-screen bg-canvas text-fg', darkMode && 'dark')}>
+      {/* ─── Mobile Top Bar ──────────────────────────────────────── */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-canvas/80 backdrop-blur border-b border-line px-4 h-14 flex items-center justify-between safe-top">
+        <BrandMark size="sm" />
+        {streak.current > 0 && <StreakBadge value={streak.current} compact />}
       </header>
 
-      {/* Desktop Sidebar */}
+      {/* ─── Desktop Sidebar ────────────────────────────────────── */}
       <aside
         className={cn(
-          'fixed top-0 left-0 z-40 h-full w-64 bg-white dark:bg-iron-950 border-r border-iron-200 dark:border-iron-800 transform transition-transform duration-200 ease-in-out',
-          'hidden lg:block lg:translate-x-0',
+          'fixed top-0 left-0 z-40 h-full w-64 bg-surface border-r border-line',
+          'hidden lg:flex lg:flex-col',
         )}
       >
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500 to-flame-500 flex items-center justify-center shadow-glow-primary">
-            <Dumbbell className="text-white" size={22} strokeWidth={2.5} />
-          </div>
-          <div>
-            <h1 className="font-display uppercase tracking-wide font-bold text-lg dark:text-white leading-none">FitTracker</h1>
-            <p className="text-[11px] uppercase tracking-wider text-iron-500 dark:text-iron-400 mt-1">Body Recomp Plan</p>
-          </div>
+        <div className="px-5 py-5">
+          <BrandMark />
         </div>
 
         {streak.current > 0 && (
-          <div className="mx-4 mb-4 px-4 py-2 rounded-lg bg-flame-50 dark:bg-flame-900/20 border border-flame-200 dark:border-flame-900/50">
-            <div className="flex items-center gap-2 text-flame-600 dark:text-flame-300">
-              <Flame size={16} />
-              <span className="text-sm font-display uppercase tracking-wider font-bold">{streak.current} day streak</span>
-            </div>
-            <p className="text-xs text-flame-500/80 dark:text-flame-400/70 mt-0.5 font-mono tabular-nums">
-              Best: {streak.longest} days
-            </p>
+          <div className="mx-3 mb-3">
+            <StreakCard current={streak.current} longest={streak.longest} />
           </div>
         )}
 
-        <nav className="px-3 space-y-1">
-          {navItems.map(({ to, icon: Icon, label }) => {
-            const accent = navAccent[to] ?? defaultAccent;
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors border',
-                    isActive || (to === '/' && location.pathname === '/')
-                      ? accent.active
-                      : 'border-transparent text-iron-600 dark:text-iron-300 hover:bg-iron-100 dark:hover:bg-iron-900 hover:text-iron-900 dark:hover:text-white',
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon size={18} className={isActive ? accent.icon : ''} />
-                    {label}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
+        <nav className="px-3 space-y-0.5 flex-1 overflow-y-auto scrollbar-thin">
+          {navItems.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 h-9 rounded-md text-sm font-medium transition-colors focus-ring',
+                  isActive
+                    ? 'bg-surface-2 text-fg'
+                    : 'text-fg-muted hover:bg-surface-2 hover:text-fg',
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    size={16}
+                    strokeWidth={2}
+                    className={isActive ? 'text-accent' : 'text-fg-subtle'}
+                  />
+                  <span className="truncate">{label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
         </nav>
+
+        <div className="px-5 py-4 border-t border-line">
+          <p className="text-xs text-fg-subtle">FitTracker · v1</p>
+        </div>
       </aside>
 
-      {/* Mobile "More" Sheet */}
+      {/* ─── Mobile "More" Sheet ─────────────────────────────────── */}
       {moreOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden animate-fade-in"
             onClick={() => setMoreOpen(false)}
           />
           <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 lg:hidden animate-slide-up">
-            <div className="mx-3 mb-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden">
+            <div className="mx-3 mb-2 bg-surface rounded-lg border border-line shadow-lg overflow-hidden">
               {moreItems.map(({ to, icon: Icon, label }) => (
                 <NavLink
                   key={to}
@@ -155,14 +132,14 @@ export default function AppLayout() {
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 px-5 py-4 text-sm font-medium border-b border-gray-100 dark:border-gray-800 last:border-0',
+                      'flex items-center gap-3 px-4 py-3.5 text-sm font-medium border-b border-line last:border-0 transition-colors',
                       isActive
-                        ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                        : 'text-gray-700 dark:text-gray-300 active:bg-gray-50 dark:active:bg-gray-800',
+                        ? 'text-accent bg-accent-50 dark:bg-accent-950/30'
+                        : 'text-fg active:bg-surface-2',
                     )
                   }
                 >
-                  <Icon size={20} />
+                  <Icon size={18} className="text-fg-muted" />
                   {label}
                 </NavLink>
               ))}
@@ -171,56 +148,100 @@ export default function AppLayout() {
         </>
       )}
 
-      {/* Mobile Bottom Tab Bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-iron-950/90 backdrop-blur-md border-t border-iron-200 dark:border-iron-800 safe-bottom">
+      {/* ─── Mobile Bottom Tab Bar ──────────────────────────────── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-canvas/80 backdrop-blur border-t border-line safe-bottom">
         <div className="flex items-stretch justify-around h-16">
-          {bottomTabs.map(({ to, icon: Icon, label }) => {
-            if (to === '/more') {
-              return (
-                <button
-                  key="more"
-                  onClick={() => setMoreOpen(!moreOpen)}
-                  className={cn(
-                    'flex flex-col items-center justify-center flex-1 gap-0.5 text-[10px] font-display uppercase tracking-wider font-bold transition-colors',
-                    isMoreActive || moreOpen
-                      ? 'text-iron-900 dark:text-white'
-                      : 'text-iron-400 dark:text-iron-500',
-                  )}
-                >
-                  <Icon size={22} />
-                  <span>{label}</span>
-                </button>
-              );
-            }
-            const accent = navAccent[to] ?? defaultAccent;
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                onClick={() => setMoreOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    'flex flex-col items-center justify-center flex-1 gap-0.5 text-[10px] font-display uppercase tracking-wider font-bold transition-colors',
-                    isActive
-                      ? accent.icon
-                      : 'text-iron-400 dark:text-iron-500 active:text-iron-600',
-                  )
-                }
-              >
-                <Icon size={22} />
-                <span>{label}</span>
-              </NavLink>
-            );
-          })}
+          {bottomTabs.map(({ to, icon: Icon, short }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              onClick={() => setMoreOpen(false)}
+              className={({ isActive }) =>
+                cn(
+                  'flex flex-col items-center justify-center flex-1 gap-1 text-xs font-medium transition-colors',
+                  isActive ? 'text-accent' : 'text-fg-subtle hover:text-fg',
+                )
+              }
+            >
+              <Icon size={20} strokeWidth={2} />
+              <span>{short}</span>
+            </NavLink>
+          ))}
+          <button
+            type="button"
+            onClick={() => setMoreOpen((open) => !open)}
+            className={cn(
+              'flex flex-col items-center justify-center flex-1 gap-1 text-xs font-medium transition-colors',
+              isMoreActive || moreOpen ? 'text-accent' : 'text-fg-subtle hover:text-fg',
+            )}
+            aria-label="More navigation items"
+            aria-expanded={moreOpen}
+          >
+            <MoreHorizontal size={20} strokeWidth={2} />
+            <span>More</span>
+          </button>
         </div>
       </nav>
 
-      {/* Main Content — padded for mobile header + bottom nav */}
+      {/* ─── Main Content ────────────────────────────────────────── */}
       <main className="lg:ml-64 pt-14 lg:pt-0 pb-20 lg:pb-0 min-h-screen">
-        <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
           <Outlet />
         </div>
       </main>
+    </div>
+  );
+}
+
+/** Brand mark — small accent square + wordmark. */
+function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  const iconSize = size === 'sm' ? 14 : 16;
+  const squareSize = size === 'sm' ? 'w-7 h-7' : 'w-8 h-8';
+  return (
+    <div className="flex items-center gap-2.5 min-w-0">
+      <div className={cn('rounded-md bg-accent text-white flex items-center justify-center flex-shrink-0', squareSize)}>
+        <Dumbbell size={iconSize} strokeWidth={2.5} />
+      </div>
+      <div className="min-w-0">
+        <h1 className="font-semibold text-fg leading-none tracking-tight">
+          FitTracker
+        </h1>
+        {size === 'md' && (
+          <p className="text-xs text-fg-subtle mt-1">Body recomp companion</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Slim streak indicator for the mobile top bar. */
+function StreakBadge({ value, compact }: { value: number; compact?: boolean }) {
+  return (
+    <div
+      className={cn(
+        'inline-flex items-center gap-1 px-2 py-1 rounded-md bg-surface-2 border border-line text-fg',
+        compact ? 'text-xs' : 'text-sm',
+      )}
+    >
+      <Flame size={14} className="text-accent touch-target-sm" />
+      <span className="tabular-nums font-semibold">{value}</span>
+    </div>
+  );
+}
+
+/** Streak card for the desktop sidebar. */
+function StreakCard({ current, longest }: { current: number; longest: number }) {
+  return (
+    <div className="px-3 py-2.5 rounded-md bg-surface-2 border border-line">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-fg">
+          <Flame size={14} className="text-accent" />
+          <span className="text-sm font-semibold tabular-nums">{current}</span>
+          <span className="text-xs text-fg-muted">day streak</span>
+        </div>
+      </div>
+      <p className="text-xs text-fg-subtle mt-1 tabular-nums">Best: {longest}</p>
     </div>
   );
 }

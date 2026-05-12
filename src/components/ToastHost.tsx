@@ -10,11 +10,23 @@ const ICONS: Record<Notification['kind'], typeof Info> = {
   error: XCircle,
 };
 
+/**
+ * Toast skin per kind — neutral surface with a 4px coloured left bar
+ * for affordance instead of a tinted background. Keeps toasts legible
+ * on either theme without recolouring text.
+ */
 const KIND_STYLES: Record<Notification['kind'], string> = {
-  info: 'border-metrics-300 dark:border-metrics-900/60 bg-metrics-50 dark:bg-metrics-900/30 text-metrics-700 dark:text-metrics-200',
-  success: 'border-nutrition-300 dark:border-nutrition-900/60 bg-nutrition-50 dark:bg-nutrition-900/30 text-nutrition-700 dark:text-nutrition-200',
-  warning: 'border-gold-300 dark:border-gold-900/60 bg-gold-50 dark:bg-gold-900/30 text-gold-800 dark:text-gold-200',
-  error: 'border-primary-300 dark:border-primary-900/60 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-200',
+  info: 'border-l-info',
+  success: 'border-l-success',
+  warning: 'border-l-warning',
+  error: 'border-l-danger',
+};
+
+const KIND_ICON: Record<Notification['kind'], string> = {
+  info: 'text-info',
+  success: 'text-success',
+  warning: 'text-warning',
+  error: 'text-danger',
 };
 
 export default function ToastHost() {
@@ -37,23 +49,23 @@ export default function ToastHost() {
             key={n.id}
             role="status"
             className={cn(
-              'pointer-events-auto rounded-xl border px-4 py-3 shadow-iron backdrop-blur-md animate-slide-up',
+              'pointer-events-auto rounded-md border border-line border-l-4 bg-surface text-fg px-4 py-3 shadow-md animate-slide-up',
               KIND_STYLES[n.kind],
             )}
           >
             <div className="flex items-start gap-3">
-              <Icon size={18} className="flex-shrink-0 mt-0.5" />
+              <Icon size={18} className={cn('flex-shrink-0 mt-0.5', KIND_ICON[n.kind])} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold leading-tight">{n.title}</p>
+                <p className="text-sm font-medium leading-tight">{n.title}</p>
                 {n.description && (
-                  <p className="text-xs mt-1 opacity-80 break-words">{n.description}</p>
+                  <p className="text-xs mt-1 text-fg-muted break-words">{n.description}</p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => dismiss(n.id)}
                 aria-label="Dismiss notification"
-                className="flex-shrink-0 -mr-1 -mt-1 p-1 rounded hover:bg-black/5 dark:hover:bg-white/10"
+                className="flex-shrink-0 -mr-1 -mt-1 p-1 rounded text-fg-muted hover:text-fg hover:bg-surface-2 touch-target-sm"
               >
                 <X size={14} />
               </button>

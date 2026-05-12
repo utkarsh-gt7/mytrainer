@@ -1,4 +1,5 @@
 import { AlertTriangle, RefreshCw, CloudOff } from 'lucide-react';
+import { Button } from '@/components/ui';
 
 interface ErrorFallbackProps {
   title: string;
@@ -8,45 +9,45 @@ interface ErrorFallbackProps {
   onReset?: () => void;
 }
 
+/**
+ * Full-screen fallback shown for fatal startup failures (missing
+ * Firebase config, hydration error). Uses the new design tokens and
+ * the shared Button primitive so the look stays consistent with the
+ * rest of the app.
+ */
 export default function ErrorFallback({ title, message, showReload = true, onReset }: ErrorFallbackProps) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 sm:p-8 text-center shadow-sm">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/40">
-          <AlertTriangle className="h-7 w-7 text-red-600 dark:text-red-400" />
+    <div className="min-h-screen bg-canvas flex items-center justify-center p-6">
+      <div className="w-full max-w-md rounded-xl border border-line bg-surface p-6 sm:p-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-danger-100 dark:bg-danger-700/20">
+          <AlertTriangle className="h-6 w-6 text-danger" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{title}</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 break-words">{message}</p>
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4 text-left mb-6">
+        <h1 className="text-lg font-semibold text-fg mb-2 tracking-tight">{title}</h1>
+        <p className="text-sm text-fg-muted mb-6 break-words">{message}</p>
+
+        <div className="rounded-lg border border-line bg-surface-2 p-4 text-left mb-6">
           <div className="flex items-start gap-3">
-            <CloudOff className="h-5 w-5 text-primary-500 mt-0.5" />
+            <CloudOff className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Cloud-only mode is enabled</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-sm font-medium text-fg">Cloud-only mode is enabled</p>
+              <p className="text-sm text-fg-muted mt-1">
                 This app requires a working Firebase configuration and Firestore access to load your data.
               </p>
             </div>
           </div>
         </div>
+
         <div className="flex items-center justify-center gap-2 flex-wrap">
           {onReset && (
-            <button
-              type="button"
-              onClick={onReset}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-iron-200 dark:bg-iron-800 px-4 py-2 text-sm font-medium text-iron-900 dark:text-white hover:bg-iron-300 dark:hover:bg-iron-700"
-            >
+            <Button variant="secondary" onClick={onReset}>
               Try again
-            </button>
+            </Button>
           )}
           {showReload && (
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 active:bg-primary-700"
-            >
+            <Button variant="primary" onClick={() => window.location.reload()}>
               <RefreshCw className="h-4 w-4" />
               Reload app
-            </button>
+            </Button>
           )}
         </div>
       </div>

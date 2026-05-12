@@ -11,7 +11,7 @@
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript)
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite)
-![Tests](https://img.shields.io/badge/tests-265%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-273%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/lines-88.8%25-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -77,11 +77,12 @@
 - **Body metrics** with BMI, body fat, and measurement history
 
 ### 🎨 UX
-- **Gym-themed UI** — each section has its own identity (iron-red training, leaf-green nutrition, blueprint-blue metrics, trophy-gold progress, streak-flame orange) driven by a single design system
-- **Oswald display font** with stamped-steel uppercase section banners
-- **Themed navigation** — sidebar and bottom tabs light up in the color of the active section
-- **Dark mode** by default, full light-mode support
-- **Responsive layout** — sidebar on desktop, bottom nav on mobile
+- **Calm, minimalist UI** — neutral zinc surfaces with a single warm coral-orange accent (think Linear / Vercel / Stripe rather than gritty gym apps), so the data does the talking
+- **Inter Variable** as the single typeface, with tabular numerals for every weight, rep count and macro figure
+- **Semantic design tokens** (`canvas`, `surface`, `line`, `fg`, `accent`, plus `success` / `warning` / `danger` / `info`) defined as CSS variables — dark mode flips with a single `.dark` class on `<html>`, not 200 utility duplications
+- **One primitive library** powering every page: `Button`, `Card`, `Input`, `Select`, `Badge`, `Progress`, `StatTile`, `Modal`, `Tabs`, `EmptyState` — consistent radii, spacing, motion and focus rings everywhere
+- **Accessible dialogs** with Escape / backdrop close, body-scroll lock, and proper `role="dialog"` + `aria-modal` semantics
+- **Responsive layout** — sidebar on desktop, bottom tab bar + slide-up More sheet on mobile
 - **Error boundaries** with friendly "Firebase required" / "Reload app" fallbacks
 - **PWA-ready** installable build
 
@@ -89,39 +90,57 @@
 
 ## 🎨 Design System
 
-Each page has a distinct color identity that matches its purpose — the app feels like a proper gym tool, not a generic SaaS dashboard.
+The app uses a **monochrome neutral surface palette with a single warm accent**, defined as CSS variables so dark mode flips with one selector. Semantic tones (success / warning / danger / info) are reserved for status and data — they never carry brand weight.
 
-### Palette
+### Tokens
 
-| Token | Purpose | Hex (500) |
-|-------|---------|:---------:|
-| `primary` | Iron red — strength / workout / brand | `#ef2b2b` |
-| `nutrition` | Leaf green — meals / macros | `#22ac5c` |
-| `metrics` | Blueprint blue — measurements / analytics | `#2f8dff` |
-| `gold` | Trophy amber — PRs / achievements | `#f0b429` |
-| `flame` | Streak orange — daily consistency | `#f97316` |
-| `iron` | Warm industrial neutrals — surfaces | `#55554c` |
+Every colour utility in the codebase reads from one of these tokens. They're declared in [`src/index.css`](./src/index.css) and exposed to Tailwind via the `extend.colors` map in [`tailwind.config.js`](./tailwind.config.js).
 
-### Per-page identity
+| Token | Light | Dark | Purpose |
+|-------|:-----:|:----:|---------|
+| `canvas` | `#fafafa` | `#09090b` | Page background |
+| `surface` | `#ffffff` | `#18181b` | Cards, sheets, headers |
+| `surface-2` | `#f4f4f5` | `#27272a` | Inset rows, hover, inputs |
+| `line` | `#e4e4e7` | `#27272a` | Default 1px borders |
+| `line-strong` | `#d4d4d8` | `#3f3f46` | Emphasised borders |
+| `fg` | `#18181b` | `#fafafa` | Primary text + headings |
+| `fg-muted` | `#52525b` | `#a1a1aa` | Secondary text |
+| `fg-subtle` | `#a1a1aa` | `#71717a` | Tertiary text, placeholders |
+| `accent` | `#ea580c` | `#f97316` | Primary actions, focus rings, callouts |
+| `success` | `#10b981` | `#10b981` | Completed states, positive deltas |
+| `warning` | `#f59e0b` | `#f59e0b` | Over-budget, PR markers |
+| `danger` | `#ef4444` | `#ef4444` | Destructive actions |
+| `info` | `#0ea5e9` | `#0ea5e9` | Trend lines, hypertrophy focus |
 
-| Page | Theme | Signature |
-|------|-------|-----------|
-| **Dashboard** | Red → orange → gold hero | Welcome banner with streak pill and multi-color StatCards |
-| **Today's Workout** | Iron red | Stamped-steel session header, red→flame rest-timer bar, PR sets in gold, green **Complete Workout** action |
-| **Weekly Plan** | Iron charcoal | Day cards with focus-colored left stripes (strength / hypertrophy / athletic) |
-| **Exercise Library** | Graphite | Quiet reference-catalog feel |
-| **Body Metrics** | Blueprint blue | Measurement-style stat tiles, blue weight trend |
-| **Calorie Tracker** | Leaf green | Color-coded macro tiles (protein blue / carbs green / fat gold), green gradient **Add Meal**, Saved Meals chip strip |
-| **Progress** | Trophy gold | Gold hero, gold-gradient Weekly Insights card, gold PR table |
-| **Workout Archive** | Iron charcoal | Receipts hero with active-filter badge; per-session cards with focus-coloured strength/hypertrophy/athletic chips and gold PR markers |
-| **Settings** | Graphite | Clean neutral surface for personal setup, with a Training History link to the Archive |
+### Typography
 
-### Shared primitives
+- **Inter Variable** as the only typeface, served from `rsms.me/inter/inter.css` (~70 KB for the full 100–900 axis).
+- OpenType features `cv11`, `ss01`, `ss03` enabled globally for cleaner number rendering.
+- Tabular figures everywhere via `tabular-nums` so stat columns align.
+- Headings default to `font-semibold tracking-tight`; the previous Oswald / uppercase / wide-tracking treatment is gone.
 
-- [`PageHeader`](./src/components/PageHeader.tsx) — one reusable hero component with 8 theme variants, icon badge, eyebrow, Oswald title and optional action slot
-- `bg-hero-*` gradients, `shadow-glow-*` colored shadows, `bg-grid-iron` subtle grid texture
-- `font-display` Oswald used for titles, numbers and labels; `font-mono` tabular numerals for weights, reps and macros
-- Active route accents on `AppLayout` sidebar + bottom nav match each page's theme color
+### Radii, shadows, motion
+
+- Radii: `md` (0.5rem) for controls, `lg` (0.75rem) for cards, `xl` (1rem) for dialogs.
+- Shadows: single-layer `xs` / `sm` / `md` / `lg`. No glows.
+- Motion: 150 ms ease-out for hovers, 200 ms `out-quart` for entrances, `active:scale-[0.98]` press feedback on every button.
+
+### Component primitives
+
+Every page is built from a single shared library under [`src/components/ui/`](./src/components/ui). Pages never import raw Tailwind colour classes for chrome — they compose primitives.
+
+| Primitive | File | Purpose |
+|-----------|------|---------|
+| `Button` | `Button.tsx` | 5 variants (primary / secondary / ghost / danger / outline) × 4 sizes (sm / md / lg / icon), loading spinner |
+| `Card` | `Card.tsx` | Flat / raised / interactive surfaces with `CardHeader`, `CardTitle`, `CardBody` |
+| `Input` / `Textarea` / `Select` / `Field` | `Input.tsx` | Field-base with size variants, SVG-chevron select, label / hint / error wrapper |
+| `Badge` | `Badge.tsx` | 6 tones × 3 variants (solid / soft / outline) |
+| `Progress` | `Progress.tsx` | Slim accent / success / warning / danger / info bar with `role="progressbar"` |
+| `StatTile` | `StatTile.tsx` | Compact metric card with optional icon tone |
+| `Modal` | `Modal.tsx` | Accessible dialog with Esc / backdrop close, body-scroll lock, bottom-sheet on mobile |
+| `Tabs` | `Tabs.tsx` | Minimal segmented control |
+| `EmptyState` | `EmptyState.tsx` | Centred icon + heading + helper + optional action |
+| `PageHeader` | `PageHeader.tsx` | Calm header with eyebrow / title / subtitle / action slot |
 
 ---
 
@@ -247,14 +266,18 @@ fitness-tracker/
 ├── .github/workflows/         CI/CD pipeline (lint, test, build, deploy)
 ├── src/
 │   ├── components/
+│   │   ├── ui/                Design-system primitives (Button, Card, Input,
+│   │   │                       Badge, Progress, StatTile, Modal, Tabs,
+│   │   │                       EmptyState, Field) — every page imports from here
 │   │   ├── AppErrorBoundary.tsx
-│   │   ├── ErrorFallback.tsx
-│   │   ├── PageHeader.tsx     Themed hero banner (8 variants)
-│   │   ├── RouteErrorBoundary.tsx
-│   │   ├── layout/            AppLayout with sidebar + bottom nav
+│   │   ├── ErrorFallback.tsx        Full-page failure UI (Firebase, hydration)
+│   │   ├── PageHeader.tsx           Calm header — eyebrow + title + action slot
+│   │   ├── RouteErrorBoundary.tsx   Scoped "this page hit a snag" fallback
+│   │   ├── ToastHost.tsx            Coloured-left-border toast surface
+│   │   ├── layout/                  AppLayout shell: sidebar + bottom tabs
 │   │   ├── nutrition/
-│   │   │   ├── SavedMealsBar.tsx    One-tap meal templates strip + manager sheet
-│   │   │   └── SavedMealEditor.tsx  CRUD modal for saved-meal templates
+│   │   │   ├── SavedMealsBar.tsx    One-tap meal templates strip + manager modal
+│   │   │   └── SavedMealEditor.tsx  Create / edit a saved-meal template
 │   │   └── workout/
 │   │       └── PreviousLogsModal.tsx  Prior-session + smart-overload popup
 │   ├── data/
@@ -278,7 +301,7 @@ fitness-tracker/
 │   │   ├── notifier.ts        Toast-style notification bus
 │   │   └── localStorage.ts    Cloud-only stub (throws if called)
 │   ├── store/
-│   │   └── useAppStore.ts     Zustand store, firestoreStorage adapter, v1→v3 migrations
+│   │   └── useAppStore.ts     Zustand store, firestoreStorage adapter, v1→v4 migrations
 │   ├── types/index.ts
 │   ├── utils/
 │   │   ├── archiveFilters.ts  Pure filter helpers for the Workout Archive
@@ -286,8 +309,8 @@ fitness-tracker/
 │   │   ├── cn.ts
 │   │   ├── exerciseHistory.ts Find prior sessions + smart-overload suggestion
 │   │   ├── mealMath.ts        Sum macros across food items
-│   │   └── workoutMigrations.ts v3 schema rewrites + PR recomputation
-│   ├── __tests__/             20 test suites · 265 tests
+│   │   └── workoutMigrations.ts v3 schema rewrites + v4 forearm-ext insertion / MAV clamp
+│   ├── __tests__/             20 test suites · 273 tests
 │   ├── App.tsx
 │   └── main.tsx
 ├── netlify.toml
@@ -385,13 +408,13 @@ docker run -p 8080:80 fitness-tracker
 Opens by default. Shows today's plan, streak, recent PRs, and a weekly summary.
 
 ### Today's Workout (`/today`)
-1. Tap **Start Workout** — the first exercise auto-expands.
+1. Tap **Start workout** — the first exercise auto-expands.
 2. For each set, enter **weight** and **reps**, then press the **✓** tick button.
 3. On sets 2+ an arrow-down button appears — tap it to copy weight and reps from the previous set.
 4. After logging, each row becomes read-only with a **pencil** icon; tap it to edit.
-5. Tap the **History** (clock-with-arrow) button on the expanded exercise card to open the **Previous Logs** popup — shows your last session, all-time PR, recent trend, and a Smart Overload suggestion.
-6. Tap **Complete Workout** when done. Your streak updates automatically.
-7. To change a saved session, press **Edit Workout** on the "Workout Complete" card to re-open it.
+5. Tap the **Last logs** button on the expanded exercise card to open the **Previous Logs** popup — shows your last session, all-time PR, recent trend, and a Smart Overload suggestion.
+6. Tap **Complete workout** when done. Your streak updates automatically.
+7. To change a saved session, press **Edit workout** on the "Workout complete" card to re-open it.
 
 > 💡 Typing is **autosaved** — if you reload mid-workout your values come right back.
 
@@ -439,12 +462,12 @@ npm run test:watch      # watch mode
 npm run test:coverage   # with V8 coverage reporter
 ```
 
-### Latest run (265 tests · 20 suites)
+### Latest run (273 tests · 20 suites)
 
 | Metric | Result |
 |--------|-------:|
 | **Test files** | **20 passed** |
-| **Tests** | **265 passed** |
+| **Tests** | **273 passed** |
 | **Line coverage** | **🟢 88.80%** |
 | **Statement coverage** | 🟢 86.96% |
 | **Function coverage** | 🟢 85.00% |
@@ -487,7 +510,7 @@ npm run test:coverage   # with V8 coverage reporter
 | `calculations.test.ts` | 39 | BMI, BFE, calorie target, protein, formatters |
 | `defaultPlan.test.ts` | 17 | Default PPL plan shape, forearm split, calf swap, MAV quad cap |
 | `exerciseHistory.test.ts` | 17 | Rep-target parsing, prior-session lookup, smart-overload heuristics |
-| `workoutMigrations.test.ts` | 15 | v3 schema rewrite — forearm split, calf swap, leg-ext consolidation, PR recompute |
+| `workoutMigrations.test.ts` | 23 | v3 schema rewrite + v4 forearm-ext insertion / MAV leg-volume clamp + PR recompute |
 | `exercises.test.ts` | 14 | Exercise database integrity, decoupled forearms, seated calf, retired ids |
 | `archiveFilters.test.ts` | 13 | Exercise / muscle / day / date filters with AND-composition |
 | `savedMeals.test.tsx` | 13 | Saved-meal totals math, CRUD, apply-with-overrides, chip-bar UI |
@@ -594,6 +617,8 @@ You shouldn't — every keystroke is debounced (350 ms) into `workoutDrafts` and
 ## 🗺 Roadmap
 
 ### Recently shipped
+- [x] **Full UI redesign** — calm monochrome system with a single warm accent, one shared component library, dropped Oswald display font + gradient hero panels + glow shadows
+- [x] **v4 persisted-data migration** — inserts the missing `forearm-ext` row into every existing plan and clamps leg-day target sets to the MAV defaults (back-squat 4 → 3, leg-press 4 → 3, leg-ext 3 → 2, RDL 4 → 3)
 - [x] **Previous Logs popup** with double-progression smart-overload suggestion
 - [x] **Workout Archive** page with exercise / muscle / day / date filters
 - [x] **Saved Meals** templates with one-tap logging and macro derivation from items

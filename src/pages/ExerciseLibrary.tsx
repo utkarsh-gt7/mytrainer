@@ -1,41 +1,75 @@
 import { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, X, Dumbbell, Library } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Dumbbell, Library } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/utils/cn';
 import type { Exercise, MuscleGroup, Equipment } from '@/types';
 import { generateId } from '@/utils/calculations';
 import PageHeader from '@/components/PageHeader';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Input,
+  Modal,
+  Select,
+  Textarea,
+} from '@/components/ui';
 
 const MUSCLE_GROUPS: MuscleGroup[] = [
   'chest', 'back', 'shoulders', 'side_delts', 'rear_delts', 'biceps', 'triceps',
   'quads', 'hamstrings', 'glutes', 'calves', 'abs', 'forearms', 'traps', 'neck',
 ];
 
-const EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'smith_machine', 'other'];
+const EQUIPMENT: Equipment[] = [
+  'barbell',
+  'dumbbell',
+  'cable',
+  'machine',
+  'bodyweight',
+  'smith_machine',
+  'other',
+];
 
+const blankForm = (): {
+  name: string;
+  muscleGroups: MuscleGroup[];
+  equipment: Equipment;
+  notes: string;
+} => ({ name: '', muscleGroups: [], equipment: 'barbell', notes: '' });
+
+/**
+ * ExerciseLibrary — browse, add, edit and remove exercises.
+ *
+ * The form lives inside a shared Modal so the same affordance is
+ * used here, in the meal editor, and in PreviousLogsModal.
+ */
 export default function ExerciseLibrary() {
   const { exercises, addExercise, updateExercise, removeExercise } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | ''>('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<{
-    name: string;
-    muscleGroups: MuscleGroup[];
-    equipment: Equipment;
-    notes: string;
-  }>({ name: '', muscleGroups: [], equipment: 'barbell', notes: '' });
+  const [formData, setFormData] = useState(blankForm);
 
   const filtered = exercises.filter((ex) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
       searchQuery === '' ||
-      ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ex.muscleGroups.some((mg) => mg.includes(searchQuery.toLowerCase()));
+      ex.name.toLowerCase().includes(q) ||
+      ex.muscleGroups.some((mg) => mg.includes(q));
     const matchesMuscle = filterMuscle === '' || ex.muscleGroups.includes(filterMuscle);
     return matchesSearch && matchesMuscle;
   });
 
-  const handleEdit = (ex: Exercise) => {
+  const openAdd = () => {
+    setEditingId(null);
+    setFormData(blankForm());
+    setShowForm(true);
+  };
+
+  const openEdit = (ex: Exercise) => {
     setEditingId(ex.id);
     setFormData({
       name: ex.name,
@@ -55,7 +89,7 @@ export default function ExerciseLibrary() {
     }
     setShowForm(false);
     setEditingId(null);
-    setFormData({ name: '', muscleGroups: [], equipment: 'barbell', notes: '' });
+    setFormData(blankForm());
   };
 
   const toggleMuscle = (mg: MuscleGroup) => {
@@ -68,171 +102,183 @@ export default function ExerciseLibrary() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       <PageHeader
-        theme="library"
         icon={Library}
-        eyebrow="Reference Catalog"
-        title="Exercise Library"
-        subtitle={`${exercises.length} movements — every tool in the rack.`}
+        eyebrow="Reference catalog"
+        title="Exercise library"
+        subtitle={`${exercises.length} movements available.`}
       >
-        <button
-          onClick={() => {
-            setShowForm(true);
-            setEditingId(null);
-            setFormData({ name: '', muscleGroups: [], equipment: 'barbell', notes: '' });
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-sm text-white text-sm font-semibold transition-colors"
-        >
-          <Plus size={16} /> <span className="hidden sm:inline">Add Exercise</span><span className="sm:hidden">Add</span>
-        </button>
+        <Button variant="primary" onClick={openAdd}>
+          <Plus size={14} />
+          <span className="hidden sm:inline">Add exercise</span>
+          <span className="sm:hidden">Add</span>
+        </Button>
       </PageHeader>
 
-      {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* ── Search + filter ─────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-          <input
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle pointer-events-none"
+          />
+          <Input
             type="text"
-            placeholder="Search exercises..."
+            placeholder="Search exercises…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+            className="pl-9"
           />
         </div>
-        <select
+        <Select
           value={filterMuscle}
           onChange={(e) => setFilterMuscle(e.target.value as MuscleGroup | '')}
-          className="px-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm dark:text-white"
+          className="sm:w-48 capitalize"
         >
-          <option value="">All Muscles</option>
+          <option value="">All muscles</option>
           {MUSCLE_GROUPS.map((mg) => (
-            <option key={mg} value={mg}>{mg.replace('_', ' ')}</option>
+            <option key={mg} value={mg} className="capitalize">
+              {mg.replace('_', ' ')}
+            </option>
           ))}
-        </select>
+        </Select>
       </div>
 
-      {/* Exercise Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowForm(false)}>
-          <div
-            className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold dark:text-white">
-                {editingId ? 'Edit Exercise' : 'New Exercise'}
-              </h3>
-              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium dark:text-gray-300 mb-1 block">Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white"
-                  placeholder="Exercise name"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium dark:text-gray-300 mb-2 block">Muscle Groups</label>
-                <div className="flex flex-wrap gap-2">
-                  {MUSCLE_GROUPS.map((mg) => (
-                    <button
-                      key={mg}
-                      onClick={() => toggleMuscle(mg)}
-                      className={cn(
-                        'px-3 py-1 rounded-full text-xs font-medium transition-colors',
-                        formData.muscleGroups.includes(mg)
-                          ? 'bg-primary-500 text-white'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
-                      )}
-                    >
-                      {mg.replace('_', ' ')}
-                    </button>
-                  ))}
+      {/* ── Exercise grid ───────────────────────────────────────── */}
+      {filtered.length > 0 ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.map((ex) => (
+            <Card key={ex.id} className="!p-4 group">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Dumbbell size={14} className="text-fg-muted flex-shrink-0" />
+                  <h4 className="text-sm font-medium text-fg truncate">{ex.name}</h4>
+                </div>
+                <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(ex)}
+                    aria-label={`Edit ${ex.name}`}
+                    className="touch-target-sm p-1.5 rounded text-fg-subtle hover:text-fg hover:bg-surface-2 transition-colors focus-ring"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeExercise(ex.id)}
+                    aria-label={`Remove ${ex.name}`}
+                    className="touch-target-sm p-1.5 rounded text-fg-subtle hover:text-danger hover:bg-danger-100 dark:hover:bg-danger-700/20 transition-colors focus-ring"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
-
-              <div>
-                <label className="text-sm font-medium dark:text-gray-300 mb-1 block">Equipment</label>
-                <select
-                  value={formData.equipment}
-                  onChange={(e) => setFormData((p) => ({ ...p, equipment: e.target.value as Equipment }))}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white"
-                >
-                  {EQUIPMENT.map((eq) => (
-                    <option key={eq} value={eq}>{eq.replace('_', ' ')}</option>
-                  ))}
-                </select>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {ex.muscleGroups.map((mg) => (
+                  <Badge key={mg} tone="neutral" variant="soft" className="capitalize">
+                    {mg.replace('_', ' ')}
+                  </Badge>
+                ))}
               </div>
-
-              <div>
-                <label className="text-sm font-medium dark:text-gray-300 mb-1 block">Notes (optional)</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white"
-                  rows={2}
-                />
-              </div>
-
-              <button
-                onClick={handleSave}
-                className="w-full py-2.5 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600"
-              >
-                {editingId ? 'Save Changes' : 'Add Exercise'}
-              </button>
-            </div>
-          </div>
+              <p className="text-xs text-fg-subtle mt-2 capitalize">
+                {ex.equipment.replace('_', ' ')}
+              </p>
+            </Card>
+          ))}
         </div>
+      ) : (
+        <Card>
+          <EmptyState
+            icon={Search}
+            title="No exercises found"
+            description="Try a different search term or muscle filter."
+          />
+        </Card>
       )}
 
-      {/* Exercise Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filtered.map((ex) => (
-          <div
-            key={ex.id}
-            className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 group"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <Dumbbell size={16} className="text-primary-400" />
-                <h4 className="font-medium text-sm dark:text-white">{ex.name}</h4>
-              </div>
-              <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                <button onClick={() => handleEdit(ex)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
-                  <Edit2 size={16} className="text-gray-400" />
-                </button>
-                <button onClick={() => removeExercise(ex.id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20">
-                  <Trash2 size={16} className="text-red-400" />
-                </button>
-              </div>
+      {/* ── Form modal ──────────────────────────────────────────── */}
+      <Modal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={editingId ? 'Edit exercise' : 'New exercise'}
+        size="lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowForm(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={!formData.name || formData.muscleGroups.length === 0}
+            >
+              {editingId ? 'Save changes' : 'Add exercise'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Name" htmlFor="ex-name" required>
+            <Input
+              id="ex-name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+              placeholder="e.g. Incline dumbbell press"
+            />
+          </Field>
+
+          <Field label="Muscle groups" required>
+            <div className="flex flex-wrap gap-1.5">
+              {MUSCLE_GROUPS.map((mg) => {
+                const active = formData.muscleGroups.includes(mg);
+                return (
+                  <button
+                    key={mg}
+                    type="button"
+                    onClick={() => toggleMuscle(mg)}
+                    className={cn(
+                      'touch-target-sm capitalize px-2.5 h-7 rounded-md text-xs font-medium transition-colors focus-ring',
+                      active
+                        ? 'bg-accent text-white'
+                        : 'bg-surface-2 text-fg-muted hover:text-fg hover:bg-surface',
+                    )}
+                  >
+                    {mg.replace('_', ' ')}
+                  </button>
+                );
+              })}
             </div>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {ex.muscleGroups.map((mg) => (
-                <span key={mg} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                  {mg.replace('_', ' ')}
-                </span>
+          </Field>
+
+          <Field label="Equipment" htmlFor="ex-eq">
+            <Select
+              id="ex-eq"
+              value={formData.equipment}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, equipment: e.target.value as Equipment }))
+              }
+              className="capitalize"
+            >
+              {EQUIPMENT.map((eq) => (
+                <option key={eq} value={eq} className="capitalize">
+                  {eq.replace('_', ' ')}
+                </option>
               ))}
-            </div>
-            <p className="text-xs text-gray-400 mt-2 capitalize">{ex.equipment.replace('_', ' ')}</p>
-          </div>
-        ))}
-      </div>
+            </Select>
+          </Field>
 
-      {filtered.length === 0 && (
-        <div className="text-center py-12">
-          <Search className="mx-auto text-gray-300 dark:text-gray-600 mb-2" size={40} />
-          <p className="text-gray-500 dark:text-gray-400">No exercises found</p>
+          <Field label="Notes" htmlFor="ex-notes" hint="Optional cues or form notes.">
+            <Textarea
+              id="ex-notes"
+              value={formData.notes}
+              onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))}
+              rows={2}
+            />
+          </Field>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

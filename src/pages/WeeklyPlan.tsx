@@ -2,10 +2,21 @@ import { useState } from 'react';
 import { Plus, Trash2, GripVertical, Search, X, CalendarDays } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { getExerciseById, searchExercises } from '@/data/exercises';
-import { cn } from '@/utils/cn';
 import type { Exercise } from '@/types';
 import PageHeader from '@/components/PageHeader';
+import { Badge, Button, Card, Field, Input } from '@/components/ui';
+import type { BadgeTone } from '@/components/ui';
 
+const focusTone: Record<string, BadgeTone> = {
+  strength: 'accent',
+  hypertrophy: 'info',
+  athletic: 'success',
+};
+
+/**
+ * WeeklyPlan — edit the user's seven-day training split. Each day
+ * shows its programmed exercises and exposes a per-day add panel.
+ */
 export default function WeeklyPlan() {
   const { workoutPlan, addExerciseToDay, removeExerciseFromDay, exercises } = useAppStore();
   const [addingTo, setAddingTo] = useState<string | null>(null);
@@ -14,7 +25,8 @@ export default function WeeklyPlan() {
   const [sets, setSets] = useState('3');
   const [reps, setReps] = useState('12');
 
-  const filteredExercises = searchQuery.length > 1 ? searchExercises(searchQuery) : exercises.slice(0, 20);
+  const filteredExercises =
+    searchQuery.length > 1 ? searchExercises(searchQuery) : exercises.slice(0, 20);
 
   const handleAdd = () => {
     if (!addingTo || !selectedExercise) return;
@@ -24,104 +36,96 @@ export default function WeeklyPlan() {
     setSearchQuery('');
   };
 
-  const focusColors: Record<string, string> = {
-    strength: 'border-l-primary-500',
-    hypertrophy: 'border-l-metrics-500',
-    athletic: 'border-l-nutrition-500',
-  };
-
-  const focusBadge: Record<string, string> = {
-    strength: 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-900/60',
-    hypertrophy: 'bg-metrics-100 dark:bg-metrics-900/30 text-metrics-700 dark:text-metrics-300 border-metrics-200 dark:border-metrics-900/60',
-    athletic: 'bg-nutrition-100 dark:bg-nutrition-900/30 text-nutrition-700 dark:text-nutrition-300 border-nutrition-200 dark:border-nutrition-900/60',
-  };
-
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       <PageHeader
-        theme="plan"
         icon={CalendarDays}
-        eyebrow="Training Split"
-        title="Weekly Plan"
+        eyebrow="Training split"
+        title="Weekly plan"
         subtitle="Six days of programmed work. Tap any card to tweak exercises, sets and reps."
       />
 
-      <div className="grid gap-4">
+      <div className="space-y-3">
         {workoutPlan.map((day) => {
           const totalSets = day.exercises.reduce((s, e) => s + e.targetSets, 0);
+          const isOpen = addingTo === day.id;
+
           return (
-            <div
-              key={day.id}
-              className={cn(
-                'bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 border-l-4 overflow-hidden',
-                focusColors[day.focus] ?? 'border-l-iron-400',
-              )}
-            >
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-display text-lg uppercase tracking-wide font-bold dark:text-white">
-                      {day.dayName} <span className="text-iron-400">—</span> {day.label}
+            <Card key={day.id} bare>
+              <div className="p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <h3 className="text-base font-semibold text-fg tracking-tight">
+                      {day.dayName}{' '}
+                      <span className="text-fg-subtle font-normal">— {day.label}</span>
                     </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={cn('inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-semibold border', focusBadge[day.focus])}>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <Badge tone={focusTone[day.focus] ?? 'neutral'} variant="soft" className="capitalize">
                         {day.focus}
+                      </Badge>
+                      <span className="text-xs text-fg-muted tabular-nums">
+                        {totalSets} working sets
                       </span>
-                      <span className="text-xs font-mono text-iron-500 tabular-nums">{totalSets} sets</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setAddingTo(addingTo === day.id ? null : day.id)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-primary-500"
+                  <Button
+                    variant={isOpen ? 'secondary' : 'ghost'}
+                    size="icon"
+                    onClick={() => setAddingTo(isOpen ? null : day.id)}
+                    aria-label={isOpen ? 'Close add panel' : `Add exercise to ${day.dayName}`}
                   >
-                    {addingTo === day.id ? <X size={18} /> : <Plus size={18} />}
-                  </button>
+                    {isOpen ? <X size={16} /> : <Plus size={16} />}
+                  </Button>
                 </div>
 
-                <div className="space-y-1">
+                <ul className="divide-y divide-line">
                   {day.exercises.map((ex) => {
                     const exercise = getExerciseById(ex.exerciseId);
                     return (
-                      <div
+                      <li
                         key={ex.id}
-                        className="flex items-center gap-2 py-1.5 group"
+                        className="flex items-center gap-2 py-2 group first:pt-0 last:pb-0"
                       >
-                        <GripVertical size={14} className="text-gray-300 dark:text-gray-600" />
-                        <span className="w-5 text-xs text-gray-400 font-mono">{ex.order}</span>
-                        <span className="flex-1 text-sm dark:text-gray-300">{exercise?.name}</span>
-                        <span className="text-xs text-gray-500 font-mono">
+                        <GripVertical size={14} className="text-fg-subtle/60" />
+                        <span className="w-5 text-xs text-fg-subtle tabular-nums">{ex.order}</span>
+                        <span className="flex-1 text-sm text-fg truncate">{exercise?.name}</span>
+                        <span className="text-xs text-fg-muted font-mono tabular-nums">
                           {ex.targetSets}×{ex.targetReps}
                         </span>
                         <button
                           onClick={() => removeExerciseFromDay(day.id, ex.id)}
-                          className="p-1.5 rounded sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 transition-opacity"
+                          aria-label={`Remove ${exercise?.name ?? 'exercise'} from ${day.dayName}`}
+                          className="touch-target-sm p-1.5 rounded text-fg-subtle hover:text-danger hover:bg-danger-100 dark:hover:bg-danger-700/20 transition-colors sm:opacity-0 sm:group-hover:opacity-100 focus-ring"
                         >
                           <Trash2 size={14} />
                         </button>
-                      </div>
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
 
-                {/* Add Exercise Panel */}
-                {addingTo === day.id && (
-                  <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 animate-slide-up">
+                {/* ── Add exercise inline panel ─────────────────── */}
+                {isOpen && (
+                  <div className="mt-4 p-4 rounded-lg bg-surface-2 border border-line animate-slide-up">
                     <div className="relative mb-3">
-                      <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-                      <input
+                      <Search
+                        size={14}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle pointer-events-none"
+                      />
+                      <Input
                         type="text"
-                        placeholder="Search exercises..."
+                        placeholder="Search exercises…"
                         value={searchQuery}
                         onChange={(e) => {
                           setSearchQuery(e.target.value);
                           setSelectedExercise(null);
                         }}
-                        className="w-full pl-9 pr-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                        className="pl-9"
                       />
                     </div>
 
                     {!selectedExercise && (
-                      <div className="max-h-40 overflow-y-auto space-y-1">
+                      <div className="max-h-48 overflow-y-auto scrollbar-thin space-y-0.5">
                         {filteredExercises.map((ex) => (
                           <button
                             key={ex.id}
@@ -129,10 +133,10 @@ export default function WeeklyPlan() {
                               setSelectedExercise(ex);
                               setSearchQuery(ex.name);
                             }}
-                            className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 dark:text-gray-300"
+                            className="touch-target-sm w-full text-left px-3 py-2 rounded-md text-sm text-fg hover:bg-surface transition-colors focus-ring"
                           >
-                            {ex.name}
-                            <span className="text-xs text-gray-400 ml-2">
+                            <span className="font-medium">{ex.name}</span>
+                            <span className="text-xs text-fg-subtle ml-2">
                               {ex.muscleGroups.join(', ')}
                             </span>
                           </button>
@@ -142,36 +146,33 @@ export default function WeeklyPlan() {
 
                     {selectedExercise && (
                       <div className="flex gap-2 items-end">
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Sets</label>
-                          <input
+                        <Field label="Sets" htmlFor={`sets-${day.id}`} className="flex-1">
+                          <Input
+                            id={`sets-${day.id}`}
                             type="number"
                             value={sets}
                             onChange={(e) => setSets(e.target.value)}
-                            className="w-16 px-2 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm dark:text-white"
+                            inputSize="sm"
                           />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Reps</label>
-                          <input
+                        </Field>
+                        <Field label="Reps" htmlFor={`reps-${day.id}`} className="flex-1">
+                          <Input
+                            id={`reps-${day.id}`}
                             type="text"
                             value={reps}
                             onChange={(e) => setReps(e.target.value)}
-                            className="w-20 px-2 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm dark:text-white"
+                            inputSize="sm"
                           />
-                        </div>
-                        <button
-                          onClick={handleAdd}
-                          className="px-4 py-1.5 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600"
-                        >
+                        </Field>
+                        <Button variant="primary" size="sm" onClick={handleAdd}>
                           Add
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>

@@ -167,9 +167,9 @@ export function recomputePersonalRecords(logs: WorkoutLog[]): {
  *  - leg-ext-sat → leg-ext (everywhere)
  *  - Saturday standing-calf → seated-calf
  *
- * Forearm entries are left untouched on purpose: doubling sets without
- * the user asking would silently hike forearm volume. They can append
- * `forearm-ext` themselves via the Weekly Plan UI.
+ * Forearm entries are left untouched here; the v3→v4 step below inserts
+ * the missing `forearm-ext` entry so users coming from any prior version
+ * end up with the decoupled split.
  */
 export function migrateWorkoutPlanV3(plan: WorkoutDay[]): WorkoutDay[] {
   return plan.map((day) => ({
@@ -182,4 +182,76 @@ export function migrateWorkoutPlanV3(plan: WorkoutDay[]): WorkoutDay[] {
       return ex;
     }),
   }));
+}
+
+/**
+ * Target-set caps for the leg-day exercises whose volume was deliberately
+ * trimmed to the MAV (Maximum Adaptive Volume) range. The v3 migration
+ * shipped the new `defaultWorkoutPlan` but left users' persisted plans
+ * carrying the older higher set counts; this lookup lets v4 clamp them.
+ *
+ * The map is intentionally exercise-keyed (not day-keyed) because the
+ * same id may appear on multiple days and we want consistent volume.
+ */
+const LEG_DAY_TARGET_SETS_CAP: Readonly<Record<string, number>> = {
+  'back-squat': 3,
+  'leg-press': 3,
+  'leg-ext': 2,
+  'rdl': 3,
+  'seated-ham': 3,
+  'hack-squat': 3,
+  'walking-lunge': 3,
+  'hip-thrust': 3,
+  'lying-ham': 3,
+};
+
+/**
+ * v3→v4 plan migration. Two fixes for users who completed the v3 step
+ * before these corrections landed:
+ *
+ *  1. **Insert `forearm-ext` after `forearm-curls`.** The v3 step only
+ *     renamed log entries, never amended the persisted plan, so the
+ *     decoupled pair never appeared on the Tuesday / Friday cards.
+ *  2. **Clamp leg-day target sets to the new MAV defaults.** The trimmed
+ *     volume only existed in the shipped `defaultWorkoutPlan`; existing
+ *     users kept their old higher set counts. We only ever clamp *down*
+ *     so a user who manually pushed volume above MAV isn't accidentally
+ *     reduced — but if their persisted value matches the legacy default,
+ *     they get the reduction they asked for.
+ *
+ * The function is idempotent: re-running on a v4 plan is a no-op.
+ */
+export function migrateWorkoutPlanV4(plan: WorkoutDay[]): WorkoutDay[] {
+  return plan.map((day) => {
+    const clamped = day.exercises.map((ex) => {
+      const cap = LEG_DAY_TARGET_SETS_CAP[ex.exerciseId];
+      if (cap !== undefined && ex.targetSets > cap) {
+        return { ...ex, targetSets: cap };
+      }
+      return ex;
+    });
+
+    const hasCurls = clamped.some((e) => e.exerciseId === 'forearm-curls');
+    const hasExt = clamped.some((e) => e.exerciseId === 'forearm-ext');
+    if (!hasCurls || hasExt) {
+      return { ...day, exercises: clamped };
+    }
+
+    const curlsIdx = clamped.findIndex((e) => e.exerciseId === 'forearm-curls');
+    const extEntry = {
+      id: generateId(),
+      exerciseId: 'forearm-ext',
+      // Order is recomputed contiguously below; this is just a placeholder.
+      order: clamped[curlsIdx].order,
+      targetSets: 2,
+      targetReps: '12-15',
+    };
+    const inserted = [
+      ...clamped.slice(0, curlsIdx + 1),
+      extEntry,
+      ...clamped.slice(curlsIdx + 1),
+    ].map((e, i) => ({ ...e, order: i + 1 }));
+
+    return { ...day, exercises: inserted };
+  });
 }

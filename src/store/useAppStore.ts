@@ -20,6 +20,7 @@ import { totalsForItems } from '@/utils/mealMath';
 import {
   migrateWorkoutLogV3,
   migrateWorkoutPlanV3,
+  migrateWorkoutPlanV4,
   recomputePersonalRecords,
 } from '@/utils/workoutMigrations';
 import { isFirebaseConfigured, db, doc, setDoc, getDoc } from '@/services/firebase';
@@ -576,7 +577,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'fitness-tracker-storage',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => firestoreStorage),
       /** Safely migrate older persisted payloads so missing fields don't crash the app. */
       migrate: (persisted, fromVersion) => {
@@ -596,6 +597,17 @@ export const useAppStore = create<AppState>()(
           }
           /* New `savedMeals` slice — seed an empty array so existing users land on a defined value. */
           migrated.savedMeals = safe.savedMeals ?? [];
+        }
+        if (fromVersion < 4) {
+          /*
+           * v3→v4: insert the decoupled `forearm-ext` plan entry next to
+           * `forearm-curls`, and clamp leg-day target sets to the MAV
+           * defaults. Both fixes are idempotent so re-runs are safe.
+           */
+          const planSource = migrated.workoutPlan ?? safe.workoutPlan;
+          if (planSource) {
+            migrated.workoutPlan = migrateWorkoutPlanV4(planSource);
+          }
         }
         return migrated as AppState;
       },

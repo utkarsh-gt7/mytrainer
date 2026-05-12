@@ -5,6 +5,7 @@ import {
   migrateWorkoutLogV3,
   recomputePersonalRecords,
   migrateWorkoutPlanV3,
+  migrateWorkoutPlanV4,
 } from '@/utils/workoutMigrations';
 
 const buildLog = (
@@ -291,5 +292,118 @@ describe('migrateWorkoutPlanV3', () => {
     const once = migrateWorkoutPlanV3(samplePlan);
     const twice = migrateWorkoutPlanV3(once);
     expect(twice).toEqual(once);
+  });
+});
+
+describe('migrateWorkoutPlanV4', () => {
+  /**
+   * Legacy plan that mirrors what a user who upgraded only through v3
+   * still carries: forearm-curls present, forearm-ext missing, and the
+   * leg-day target sets stuck at the pre-MAV-trim higher numbers.
+   */
+  const v3Plan: WorkoutDay[] = [
+    {
+      id: 'tuesday',
+      dayName: 'Tuesday',
+      label: 'Pull',
+      focus: 'strength',
+      exercises: [
+        { id: 'tue-1', exerciseId: 'deadlift', order: 1, targetSets: 4, targetReps: '4' },
+        { id: 'tue-2', exerciseId: 'forearm-curls', order: 2, targetSets: 2, targetReps: '12-15' },
+      ],
+    },
+    {
+      id: 'wednesday',
+      dayName: 'Wednesday',
+      label: 'Legs',
+      focus: 'strength',
+      exercises: [
+        { id: 'wed-1', exerciseId: 'back-squat', order: 1, targetSets: 4, targetReps: '5' },
+        { id: 'wed-2', exerciseId: 'leg-press', order: 2, targetSets: 4, targetReps: '6' },
+        { id: 'wed-3', exerciseId: 'leg-ext', order: 3, targetSets: 3, targetReps: '8-10' },
+        { id: 'wed-4', exerciseId: 'rdl', order: 4, targetSets: 4, targetReps: '6' },
+      ],
+    },
+  ];
+
+  it('inserts forearm-ext immediately after forearm-curls when missing', () => {
+    const out = migrateWorkoutPlanV4(v3Plan);
+    const tue = out.find((d) => d.id === 'tuesday')!;
+    const ids = tue.exercises.map((e) => e.exerciseId);
+    expect(ids).toEqual(['deadlift', 'forearm-curls', 'forearm-ext']);
+  });
+
+  it('renumbers order contiguously after the forearm-ext insertion', () => {
+    const out = migrateWorkoutPlanV4(v3Plan);
+    const tue = out.find((d) => d.id === 'tuesday')!;
+    expect(tue.exercises.map((e) => e.order)).toEqual([1, 2, 3]);
+  });
+
+  it('seeds the inserted forearm-ext entry with the canonical 2×12-15 prescription', () => {
+    const out = migrateWorkoutPlanV4(v3Plan);
+    const ext = out
+      .find((d) => d.id === 'tuesday')!
+      .exercises.find((e) => e.exerciseId === 'forearm-ext')!;
+    expect(ext.targetSets).toBe(2);
+    expect(ext.targetReps).toBe('12-15');
+    expect(ext.id).toBeTruthy();
+  });
+
+  it('clamps leg-day target sets down to the new MAV caps', () => {
+    const out = migrateWorkoutPlanV4(v3Plan);
+    const wed = out.find((d) => d.id === 'wednesday')!;
+    const sets = Object.fromEntries(wed.exercises.map((e) => [e.exerciseId, e.targetSets]));
+    expect(sets['back-squat']).toBe(3);
+    expect(sets['leg-press']).toBe(3);
+    expect(sets['leg-ext']).toBe(2);
+    expect(sets['rdl']).toBe(3);
+  });
+
+  it('never raises target sets above the user-set value', () => {
+    const customLowVolume: WorkoutDay[] = [
+      {
+        id: 'wednesday',
+        dayName: 'Wednesday',
+        label: 'Legs',
+        focus: 'strength',
+        exercises: [
+          { id: 'wed-1', exerciseId: 'leg-ext', order: 1, targetSets: 1, targetReps: '8' },
+        ],
+      },
+    ];
+    const out = migrateWorkoutPlanV4(customLowVolume);
+    expect(out[0].exercises[0].targetSets).toBe(1);
+  });
+
+  it('does not double-insert forearm-ext when it already exists', () => {
+    const alreadySplit: WorkoutDay[] = [
+      {
+        id: 'tuesday',
+        dayName: 'Tuesday',
+        label: 'Pull',
+        focus: 'strength',
+        exercises: [
+          { id: 'tue-1', exerciseId: 'forearm-curls', order: 1, targetSets: 2, targetReps: '12-15' },
+          { id: 'tue-2', exerciseId: 'forearm-ext', order: 2, targetSets: 2, targetReps: '12-15' },
+        ],
+      },
+    ];
+    const out = migrateWorkoutPlanV4(alreadySplit);
+    const forearmCount = out[0].exercises.filter((e) =>
+      e.exerciseId.startsWith('forearm-'),
+    ).length;
+    expect(forearmCount).toBe(2);
+  });
+
+  it('is idempotent — re-running on a v4 plan is a no-op', () => {
+    const once = migrateWorkoutPlanV4(v3Plan);
+    const twice = migrateWorkoutPlanV4(once);
+    expect(twice).toEqual(once);
+  });
+
+  it('leaves days without forearm-curls untouched (no extension injected)', () => {
+    const out = migrateWorkoutPlanV4(v3Plan);
+    const wed = out.find((d) => d.id === 'wednesday')!;
+    expect(wed.exercises.some((e) => e.exerciseId === 'forearm-ext')).toBe(false);
   });
 });

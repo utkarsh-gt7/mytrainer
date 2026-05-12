@@ -1,10 +1,11 @@
 /*
- * Inter Variable — a single, modern variable font replaces the old
- * Inter + Oswald pairing. Pulling the optimized rsms.me CDN keeps the
- * weight tiny (~70KB woff2) and gives us the full 100-900 axis without
- * loading nine individual files.
+ * Inter Variable for body + UI text (~70KB woff2 for the full
+ * 100-900 axis). Oswald is paired back in for the stamped-steel page
+ * banner titles — it only renders inside `<PageHeader>` so the body of
+ * the app stays in the clean Inter system.
  */
 @import url('https://rsms.me/inter/inter.css');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;

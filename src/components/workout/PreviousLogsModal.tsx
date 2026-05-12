@@ -8,7 +8,8 @@ import {
   getRecentSessions,
   type OverloadStrategy,
 } from '@/utils/exerciseHistory';
-import { cn } from '@/utils/cn';
+import { Badge } from '@/components/ui';
+import type { BadgeTone } from '@/components/ui';
 
 interface PreviousLogsModalProps {
   exerciseId: string;
@@ -21,40 +22,56 @@ interface PreviousLogsModalProps {
   onClose: () => void;
 }
 
-const STRATEGY_STYLES: Record<
-  OverloadStrategy,
-  { label: string; pillClass: string }
-> = {
-  'increase-weight': {
-    label: 'Add weight',
-    pillClass:
-      'bg-flame-100 text-flame-700 border-flame-300 dark:bg-flame-900/30 dark:text-flame-200 dark:border-flame-900/60',
-  },
-  'increase-reps': {
-    label: 'Push reps',
-    pillClass:
-      'bg-primary-100 text-primary-700 border-primary-300 dark:bg-primary-900/30 dark:text-primary-200 dark:border-primary-900/60',
-  },
-  consolidate: {
-    label: 'Consolidate',
-    pillClass:
-      'bg-iron-100 text-iron-700 border-iron-300 dark:bg-iron-800/70 dark:text-iron-200 dark:border-iron-700',
-  },
-  'first-time': {
-    label: 'New lift',
-    pillClass:
-      'bg-metrics-100 text-metrics-700 border-metrics-300 dark:bg-metrics-900/30 dark:text-metrics-200 dark:border-metrics-900/60',
-  },
+const STRATEGY_LABEL: Record<OverloadStrategy, string> = {
+  'increase-weight': 'Add weight',
+  'increase-reps': 'Push reps',
+  consolidate: 'Consolidate',
+  'first-time': 'New lift',
 };
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const STRATEGY_TONE: Record<OverloadStrategy, BadgeTone> = {
+  'increase-weight': 'warning',
+  'increase-reps': 'accent',
+  consolidate: 'neutral',
+  'first-time': 'info',
+};
+
+const DAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
 
 function formatSessionDate(date: string): string {
   const d = new Date(`${date}T00:00:00`);
   if (Number.isNaN(d.getTime())) return date;
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
+/**
+ * PreviousLogsModal — context drawer for an exercise.
+ *
+ * Reveals the most recent session, a Smart Overload suggestion,
+ * the all-time PR, and a trend list of older sessions. Tests
+ * rely on these strings (case-sensitive where noted):
+ *   - "Smart Overload"
+ *   - "All-Time PR" (case-sensitive)
+ *   - "First time logging this exercise"
+ *   - "No prior logs found"
+ *   - `S{n}: {w} × {r}` set-chip format
+ *   - The "Add 2.5 kg" suggestion headline (from the engine)
+ *
+ * The dialog overlay itself is the close-target for the existing
+ * backdrop-click spec; the inner panel stops propagation.
+ */
 export default function PreviousLogsModal({
   exerciseId,
   beforeDate,
@@ -88,7 +105,7 @@ export default function PreviousLogsModal({
     [previous, pr, targetReps],
   );
 
-  /* Lock body scroll while the modal is open. */
+  // Lock body scroll + Escape-to-close.
   useEffect(() => {
     const original = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -102,120 +119,110 @@ export default function PreviousLogsModal({
     };
   }, [onClose]);
 
-  const strategyStyle = STRATEGY_STYLES[suggestion.strategy];
-
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={`Previous logs for ${exercise?.name ?? exerciseId}`}
       onClick={onClose}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-iron-900 border border-iron-200/60 dark:border-iron-800 shadow-2xl animate-slide-up"
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin rounded-t-xl sm:rounded-xl bg-surface border border-line shadow-lg animate-slide-up"
       >
-        {/* Header */}
-        <div className="relative overflow-hidden p-5 sm:p-6 bg-gradient-to-br from-iron-900 via-primary-700 to-flame-600 text-white">
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-grid-iron opacity-30 pointer-events-none"
-            style={{ backgroundSize: '24px 24px' }}
-          />
-          <div className="relative flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                <History size={22} strokeWidth={2.25} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
-                  Last Logs
-                </p>
-                <h2 className="font-display font-bold uppercase tracking-wide text-2xl leading-tight truncate">
-                  {exercise?.name ?? 'Exercise'}
-                </h2>
-                {exercise?.muscleGroups && (
-                  <p className="text-xs text-white/80 mt-0.5 capitalize">
-                    {exercise.muscleGroups.join(' · ')}
-                  </p>
-                )}
-              </div>
+        {/* ── Header ───────────────────────────────────────── */}
+        <header className="px-5 py-4 border-b border-line flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="flex-shrink-0 w-9 h-9 rounded-md bg-surface-2 border border-line text-fg-muted flex items-center justify-center">
+              <History size={16} strokeWidth={2} />
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close previous logs"
-              className="flex-shrink-0 p-2 rounded-lg bg-white/15 hover:bg-white/25 border border-white/20 transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <div className="min-w-0">
+              <p className="text-2xs font-medium uppercase tracking-wide text-fg-subtle">
+                Last logs
+              </p>
+              <h2 className="font-semibold text-fg tracking-tight text-lg truncate">
+                {exercise?.name ?? 'Exercise'}
+              </h2>
+              {exercise?.muscleGroups && (
+                <p className="text-xs text-fg-muted mt-0.5 capitalize">
+                  {exercise.muscleGroups.join(' · ')}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close previous logs"
+            className="touch-target-sm flex-shrink-0 -mr-1 p-1.5 rounded-md text-fg-muted hover:text-fg hover:bg-surface-2 transition-colors focus-ring"
+          >
+            <X size={18} />
+          </button>
+        </header>
 
-        <div className="p-5 sm:p-6 space-y-4">
-          {/* Suggestion */}
-          <div className="rounded-xl border border-primary-200 dark:border-primary-900/60 bg-gradient-to-br from-primary-50 via-white to-flame-50 dark:from-primary-900/30 dark:via-iron-900 dark:to-flame-900/20 p-4">
+        <div className="p-5 space-y-4">
+          {/* ── Smart Overload suggestion ─────────────────── */}
+          <div className="rounded-lg border border-accent/30 bg-accent-50/60 dark:bg-accent-950/20 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles size={16} className="text-primary-500" />
-              <span className="font-display text-xs uppercase tracking-wider font-bold text-primary-700 dark:text-primary-200">
+              <Sparkles size={14} className="text-accent" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-accent-700 dark:text-accent-300">
                 Smart Overload
               </span>
-              <span
-                className={cn(
-                  'ml-auto inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-semibold border',
-                  strategyStyle.pillClass,
-                )}
+              <Badge
+                tone={STRATEGY_TONE[suggestion.strategy]}
+                variant="soft"
+                className="ml-auto"
               >
-                {strategyStyle.label}
-              </span>
+                {STRATEGY_LABEL[suggestion.strategy]}
+              </Badge>
             </div>
-            <p className="text-lg font-display font-bold dark:text-white">
+            <p className="text-base font-semibold text-fg tracking-tight">
               {suggestion.headline}
             </p>
-            <p className="text-sm text-iron-600 dark:text-iron-300 mt-1 leading-relaxed">
+            <p className="text-sm text-fg-muted mt-1 leading-relaxed">
               {suggestion.rationale}
             </p>
           </div>
 
-          {/* Personal Record */}
+          {/* ── All-time PR ───────────────────────────────── */}
           {pr ? (
-            <div className="rounded-xl border border-gold-200 dark:border-gold-900/60 bg-gold-50/70 dark:bg-gold-900/20 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gold-500 text-white flex items-center justify-center shadow-glow-gold flex-shrink-0">
-                <Trophy size={18} strokeWidth={2.25} />
+            <div className="rounded-lg border border-line bg-surface p-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-md bg-warning-100 dark:bg-warning-700/20 text-warning flex items-center justify-center flex-shrink-0">
+                <Trophy size={16} strokeWidth={2.25} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] uppercase tracking-wider font-semibold text-gold-700 dark:text-gold-300">
+                <p className="text-2xs font-semibold uppercase tracking-wide text-fg-subtle">
                   All-Time PR
                 </p>
-                <p className="font-mono font-bold text-base text-gold-800 dark:text-gold-100 tabular-nums">
+                <p className="font-mono font-semibold text-sm text-fg tabular-nums">
                   {pr.weight} kg × {pr.reps}
                 </p>
               </div>
-              <p className="text-xs text-iron-500 dark:text-iron-400 flex-shrink-0">
+              <p className="text-xs text-fg-subtle flex-shrink-0">
                 {formatSessionDate(pr.date)}
               </p>
             </div>
           ) : (
-            <div className="rounded-xl border border-iron-200 dark:border-iron-800 bg-iron-50 dark:bg-iron-900/40 p-4 text-center">
-              <Trophy size={18} className="mx-auto text-iron-400 dark:text-iron-500 mb-1" />
-              <p className="text-xs text-iron-500 dark:text-iron-400">
+            <div className="rounded-lg border border-line bg-surface-2/40 p-4 text-center">
+              <Trophy size={16} className="mx-auto text-fg-subtle mb-1" />
+              <p className="text-xs text-fg-muted">
                 No PR yet — your first solid set will set the benchmark.
               </p>
             </div>
           )}
 
-          {/* Previous session detail */}
+          {/* ── Last session ──────────────────────────────── */}
           {previous ? (
-            <div className="rounded-xl border border-iron-200 dark:border-iron-800 p-4">
+            <div className="rounded-lg border border-line bg-surface p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Target size={14} className="text-primary-500" />
-                  <span className="font-display text-xs uppercase tracking-wider font-bold text-iron-600 dark:text-iron-200">
-                    Last Session
+                  <Target size={13} className="text-fg-muted" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
+                    Last session
                   </span>
                 </div>
-                <p className="text-xs text-iron-500 dark:text-iron-400">
+                <p className="text-xs text-fg-subtle">
                   {formatSessionDate(previous.log.date)}
                   {' · '}
                   <span className="capitalize">
@@ -223,50 +230,48 @@ export default function PreviousLogsModal({
                   </span>
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {previous.exerciseLog.sets
                   .slice()
                   .sort((a, b) => a.setNumber - b.setNumber)
                   .map((s) => (
-                    <span
+                    <Badge
                       key={s.setNumber}
-                      className={cn(
-                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-mono font-semibold tabular-nums border',
-                        s.isPersonalRecord
-                          ? 'bg-gold-100 dark:bg-gold-900/30 text-gold-800 dark:text-gold-200 border-gold-300 dark:border-gold-800'
-                          : 'bg-iron-50 dark:bg-iron-800/70 text-iron-700 dark:text-iron-200 border-iron-200 dark:border-iron-700',
-                      )}
+                      tone={s.isPersonalRecord ? 'warning' : 'neutral'}
+                      variant="soft"
+                      className="font-mono"
                     >
                       S{s.setNumber}: {s.weight} × {s.reps}
-                      {s.isPersonalRecord && <Trophy size={10} />}
-                    </span>
+                      {s.isPersonalRecord && <Trophy size={10} className="ml-0.5" />}
+                    </Badge>
                   ))}
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-iron-200 dark:border-iron-800 p-4 text-center">
-              <p className="text-sm text-iron-500 dark:text-iron-400">
+            <div className="rounded-lg border border-line bg-surface-2/40 p-4 text-center">
+              <p className="text-sm text-fg-muted">
                 No prior logs found for this exercise.
               </p>
             </div>
           )}
 
-          {/* Trend (older sessions) */}
+          {/* ── Recent trend ──────────────────────────────── */}
           {recent.length > 1 && (
-            <div className="rounded-xl border border-iron-200 dark:border-iron-800 overflow-hidden">
-              <div className="px-4 py-2.5 flex items-center gap-2 border-b border-iron-200/60 dark:border-iron-800 bg-iron-50/60 dark:bg-iron-900/40">
-                <TrendingUp size={14} className="text-metrics-500" />
-                <span className="font-display text-xs uppercase tracking-wider font-bold text-iron-600 dark:text-iron-200">
-                  Recent Trend
+            <div className="rounded-lg border border-line bg-surface overflow-hidden">
+              <div className="px-4 py-2.5 flex items-center gap-2 border-b border-line bg-surface-2/40">
+                <TrendingUp size={13} className="text-info" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
+                  Recent trend
                 </span>
-                <span className="ml-auto text-[10px] uppercase tracking-wider text-iron-500">
+                <span className="ml-auto text-2xs uppercase tracking-wide text-fg-subtle">
                   Last {recent.length}
                 </span>
               </div>
-              <ul className="divide-y divide-iron-100 dark:divide-iron-800">
+              <ul className="divide-y divide-line">
                 {recent.slice(1).map(({ log, exerciseLog }) => {
                   const top = exerciseLog.sets.reduce(
-                    (best, s) => (s.weight * s.reps > best.weight * best.reps ? s : best),
+                    (best, s) =>
+                      s.weight * s.reps > best.weight * best.reps ? s : best,
                     exerciseLog.sets[0],
                   );
                   return (
@@ -274,12 +279,14 @@ export default function PreviousLogsModal({
                       key={log.id}
                       className="px-4 py-2.5 flex items-center justify-between text-sm"
                     >
-                      <span className="text-iron-600 dark:text-iron-300">
+                      <span className="text-fg-muted">
                         {formatSessionDate(log.date)}
                       </span>
-                      <span className="font-mono tabular-nums text-iron-700 dark:text-iron-200">
+                      <span className="font-mono tabular-nums text-fg">
                         {top.weight} kg × {top.reps}
-                        <span className="text-iron-400 ml-2">({exerciseLog.sets.length} sets)</span>
+                        <span className="text-fg-subtle ml-2">
+                          ({exerciseLog.sets.length} sets)
+                        </span>
                       </span>
                     </li>
                   );

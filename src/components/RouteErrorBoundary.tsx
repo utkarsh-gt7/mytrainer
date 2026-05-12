@@ -48,7 +48,7 @@ export default class RouteErrorBoundary extends Component<Props, State> {
             <AlertTriangle className="h-6 w-6 text-danger" />
           </div>
           <h2 className="text-lg font-semibold text-fg tracking-tight mb-2">
-            {label ? `${label} ran into a problem` : 'This page ran into a problem'}
+            {label ? `This ${label} page hit a snag` : 'This page hit a snag'}
           </h2>
           <p className="text-sm text-fg-muted mb-5">
             Nothing else in the app is affected — retry the page or jump somewhere else from the navigation.

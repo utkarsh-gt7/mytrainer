@@ -11,21 +11,49 @@ import {
   Settings as SettingsIcon,
   Archive,
   ChevronRight,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { isFirebaseConfigured, db, doc, deleteDoc } from '@/services/firebase';
 import { isGeminiConfigured } from '@/services/gemini';
+import { cn } from '@/utils/cn';
 import PageHeader from '@/components/PageHeader';
+import {
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  CardTitle,
+  Field,
+  Input,
+  Select,
+} from '@/components/ui';
 
+/**
+ * Settings — profile, appearance, archive shortcut, service status,
+ * and data management. The page is intentionally calmer than before —
+ * each section is a flat surface Card with consistent spacing.
+ */
 export default function Settings() {
-  const { profile, updateProfile, darkMode, toggleDarkMode, workoutLogs, calorieLogs, bodyMetrics } = useAppStore();
+  const {
+    profile,
+    updateProfile,
+    darkMode,
+    toggleDarkMode,
+    workoutLogs,
+    calorieLogs,
+    bodyMetrics,
+  } = useAppStore();
+
   const [name, setName] = useState(profile.name);
   const [age, setAge] = useState(profile.age.toString());
   const [height, setHeight] = useState(profile.height.toString());
   const [weight, setWeight] = useState(profile.weight.toString());
   const [bodyFat, setBodyFat] = useState(profile.bodyFat?.toString() ?? '');
   const [goal, setGoal] = useState(profile.goal);
-  const [maintenanceCal, setMaintenanceCal] = useState(profile.maintenanceCalories.toString());
+  const [maintenanceCal, setMaintenanceCal] = useState(
+    profile.maintenanceCalories.toString(),
+  );
   const [proteinTarget, setProteinTarget] = useState(profile.proteinTarget.toString());
   const [saved, setSaved] = useState(false);
 
@@ -66,7 +94,14 @@ export default function Settings() {
     workoutLogs.forEach((log) => {
       log.exercises.forEach((ex) => {
         ex.sets.forEach((s) => {
-          rows.push([log.date, log.dayId, ex.exerciseId, s.setNumber.toString(), s.weight.toString(), s.reps.toString()]);
+          rows.push([
+            log.date,
+            log.dayId,
+            ex.exerciseId,
+            s.setNumber.toString(),
+            s.weight.toString(),
+            s.reps.toString(),
+          ]);
         });
       });
     });
@@ -81,7 +116,11 @@ export default function Settings() {
   };
 
   const handleClearData = async () => {
-    if (window.confirm('Are you sure? This will delete ALL your data including workout logs, metrics, and meal logs. This cannot be undone.')) {
+    if (
+      window.confirm(
+        'Are you sure? This will delete ALL your data including workout logs, metrics, and meal logs. This cannot be undone.',
+      )
+    ) {
       if (isFirebaseConfigured() && db) {
         try {
           await deleteDoc(doc(db, 'appState', 'main'));
@@ -94,153 +133,230 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-2xl">
+    <div className="space-y-5 animate-fade-in max-w-2xl">
       <PageHeader
-        theme="settings"
         icon={SettingsIcon}
-        eyebrow="Personal Setup"
+        eyebrow="Personal setup"
         title="Settings"
         subtitle="Tune your profile, theme and cloud data — all in one place."
       />
 
-      {/* Theme */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-        <h3 className="font-semibold dark:text-white mb-4 flex items-center gap-2">
-          {darkMode ? <Moon size={18} /> : <Sun size={18} />} Appearance
-        </h3>
+      {/* ── Appearance ──────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <span className="flex items-center gap-2">
+              {darkMode ? (
+                <Moon size={16} className="text-fg-muted" />
+              ) : (
+                <Sun size={16} className="text-fg-muted" />
+              )}
+              Appearance
+            </span>
+          </CardTitle>
+        </CardHeader>
         <div className="flex items-center justify-between">
-          <span className="text-sm dark:text-gray-300">Dark Mode</span>
+          <div>
+            <p className="text-sm text-fg">Dark mode</p>
+            <p className="text-xs text-fg-muted mt-0.5">
+              Inverts surfaces — accent stays warm.
+            </p>
+          </div>
           <button
+            type="button"
+            role="switch"
+            aria-checked={darkMode}
+            aria-label="Toggle dark mode"
             onClick={toggleDarkMode}
-            className={`relative w-12 h-6 rounded-full transition-colors ${darkMode ? 'bg-primary-500' : 'bg-gray-300'}`}
+            className={cn(
+              'touch-target-sm relative w-11 h-6 rounded-full transition-colors focus-ring',
+              darkMode ? 'bg-accent' : 'bg-surface-2 border border-line-strong',
+            )}
           >
             <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${darkMode ? 'translate-x-6' : ''}`}
+              className={cn(
+                'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform',
+                darkMode ? 'translate-x-5' : '',
+              )}
             />
           </button>
         </div>
-      </div>
+      </Card>
 
-      {/* Profile */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-        <h3 className="font-semibold dark:text-white mb-4 flex items-center gap-2">
-          <User size={18} /> Profile
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          <div>
-            <label className="text-xs font-medium dark:text-gray-400 block mb-1">Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white" />
-          </div>
-          <div>
-            <label className="text-xs font-medium dark:text-gray-400 block mb-1">Age</label>
-            <input type="number" value={age} onChange={(e) => setAge(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white" />
-          </div>
-          <div>
-            <label className="text-xs font-medium dark:text-gray-400 block mb-1">Height (cm)</label>
-            <input type="number" value={height} onChange={(e) => setHeight(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white" />
-          </div>
-          <div>
-            <label className="text-xs font-medium dark:text-gray-400 block mb-1">Weight (kg)</label>
-            <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white" />
-          </div>
-          <div>
-            <label className="text-xs font-medium dark:text-gray-400 block mb-1">Body Fat %</label>
-            <input type="number" step="0.1" value={bodyFat} onChange={(e) => setBodyFat(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white" />
-          </div>
-          <div>
-            <label className="text-xs font-medium dark:text-gray-400 block mb-1">Goal</label>
-            <select value={goal} onChange={(e) => setGoal(e.target.value as 'recomp' | 'bulk' | 'cut')}
-              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white">
-              <option value="recomp">Body Recomp</option>
-              <option value="bulk">Lean Bulk</option>
+      {/* ── Profile ─────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <span className="flex items-center gap-2">
+              <User size={16} className="text-fg-muted" />
+              Profile
+            </span>
+          </CardTitle>
+        </CardHeader>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Name" htmlFor="p-name">
+            <Input id="p-name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="Age" htmlFor="p-age">
+            <Input id="p-age" type="number" value={age} onChange={(e) => setAge(e.target.value)} />
+          </Field>
+          <Field label="Height (cm)" htmlFor="p-h">
+            <Input
+              id="p-h"
+              type="number"
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+            />
+          </Field>
+          <Field label="Weight (kg)" htmlFor="p-w">
+            <Input
+              id="p-w"
+              type="number"
+              step="0.1"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+            />
+          </Field>
+          <Field label="Body fat %" htmlFor="p-bf">
+            <Input
+              id="p-bf"
+              type="number"
+              step="0.1"
+              value={bodyFat}
+              onChange={(e) => setBodyFat(e.target.value)}
+            />
+          </Field>
+          <Field label="Goal" htmlFor="p-goal">
+            <Select
+              id="p-goal"
+              value={goal}
+              onChange={(e) => setGoal(e.target.value as 'recomp' | 'bulk' | 'cut')}
+            >
+              <option value="recomp">Body recomp</option>
+              <option value="bulk">Lean bulk</option>
               <option value="cut">Cut</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium dark:text-gray-400 block mb-1">Maintenance Cal</label>
-            <input type="number" value={maintenanceCal} onChange={(e) => setMaintenanceCal(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white" />
-          </div>
-          <div>
-            <label className="text-xs font-medium dark:text-gray-400 block mb-1">Protein Target (g)</label>
-            <input type="number" value={proteinTarget} onChange={(e) => setProteinTarget(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm dark:text-white" />
-          </div>
+            </Select>
+          </Field>
+          <Field label="Maintenance cal" htmlFor="p-mc">
+            <Input
+              id="p-mc"
+              type="number"
+              value={maintenanceCal}
+              onChange={(e) => setMaintenanceCal(e.target.value)}
+            />
+          </Field>
+          <Field label="Protein target (g)" htmlFor="p-pt">
+            <Input
+              id="p-pt"
+              type="number"
+              value={proteinTarget}
+              onChange={(e) => setProteinTarget(e.target.value)}
+            />
+          </Field>
         </div>
-        <button onClick={handleSave}
-          className="mt-4 w-full sm:w-auto px-6 py-2.5 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600">
-          {saved ? '✓ Saved!' : 'Save Profile'}
-        </button>
-      </div>
 
-      {/* Workout Archive */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-        <h3 className="font-semibold dark:text-white mb-4 flex items-center gap-2">
-          <Archive size={18} /> Training History
-        </h3>
+        <div className="mt-4 flex items-center gap-3">
+          <Button variant="primary" onClick={handleSave}>
+            {saved && <CheckCircle2 size={14} />}
+            {saved ? 'Saved' : 'Save profile'}
+          </Button>
+        </div>
+      </Card>
+
+      {/* ── Training history shortcut ────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <span className="flex items-center gap-2">
+              <Archive size={16} className="text-fg-muted" />
+              Training history
+            </span>
+          </CardTitle>
+        </CardHeader>
         <Link
           to="/archive"
-          className="group flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-iron-200 dark:border-iron-700 bg-iron-50/60 dark:bg-iron-800/40 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+          className="group flex items-center justify-between gap-3 px-4 py-3 rounded-md border border-line bg-surface-2/50 hover:bg-surface-2 hover:border-line-strong transition-colors focus-ring"
         >
           <div className="min-w-0">
-            <p className="text-sm font-semibold dark:text-white">Workout Archive</p>
-            <p className="text-xs text-iron-500 dark:text-iron-400 mt-0.5">
-              Search, filter and revisit every session — by exercise, day, muscle group or date.
+            <p className="text-sm font-medium text-fg">Workout archive</p>
+            <p className="text-xs text-fg-muted mt-0.5">
+              Search, filter and revisit every session.
             </p>
           </div>
           <ChevronRight
-            size={18}
-            className="text-iron-400 group-hover:text-primary-500 flex-shrink-0"
+            size={16}
+            className="text-fg-subtle group-hover:text-fg flex-shrink-0"
           />
         </Link>
-      </div>
+      </Card>
 
-      {/* Service Status */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-        <h3 className="font-semibold dark:text-white mb-4 flex items-center gap-2">
-          <Shield size={18} /> Services
-        </h3>
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-            <span className="text-sm dark:text-gray-300">Firebase</span>
-            <span className={`text-xs px-2 py-1 rounded-full w-fit ${isFirebaseConfigured() ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-              {isFirebaseConfigured() ? 'Connected' : 'Not configured (using local storage)'}
+      {/* ── Service status ──────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <span className="flex items-center gap-2">
+              <Shield size={16} className="text-fg-muted" />
+              Services
             </span>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-            <span className="text-sm dark:text-gray-300">Gemini AI</span>
-            <span className={`text-xs px-2 py-1 rounded-full w-fit ${isGeminiConfigured() ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-              {isGeminiConfigured() ? 'Connected' : 'Not configured (mock analysis)'}
-            </span>
-          </div>
-        </div>
-      </div>
+          </CardTitle>
+        </CardHeader>
+        <ul className="space-y-2">
+          <li className="flex items-center justify-between">
+            <span className="text-sm text-fg">Firebase</span>
+            <Badge
+              tone={isFirebaseConfigured() ? 'success' : 'warning'}
+              variant="soft"
+            >
+              {isFirebaseConfigured() ? 'Connected' : 'Not configured'}
+            </Badge>
+          </li>
+          <li className="flex items-center justify-between">
+            <span className="text-sm text-fg">Gemini AI</span>
+            <Badge
+              tone={isGeminiConfigured() ? 'success' : 'warning'}
+              variant="soft"
+            >
+              {isGeminiConfigured() ? 'Connected' : 'Mock analysis'}
+            </Badge>
+          </li>
+        </ul>
+      </Card>
 
-      {/* Data Management */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
-        <h3 className="font-semibold dark:text-white mb-4 flex items-center gap-2">
-          <Database size={18} /> Data Management
-        </h3>
-        <div className="space-y-3">
-          <button onClick={handleExport}
-            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700">
-            <Download size={16} /> Export Data (JSON)
-          </button>
-          <button onClick={handleExportCSV}
-            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700">
-            <Download size={16} /> Export Workouts (CSV)
-          </button>
-          <button onClick={handleClearData}
-            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40">
-            <Trash2 size={16} /> Clear All Data
-          </button>
+      {/* ── Data management ─────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <span className="flex items-center gap-2">
+              <Database size={16} className="text-fg-muted" />
+              Data management
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <div className="space-y-2">
+          <Button
+            variant="secondary"
+            className="w-full justify-start"
+            onClick={handleExport}
+          >
+            <Download size={14} /> Export data (JSON)
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-full justify-start"
+            onClick={handleExportCSV}
+          >
+            <Download size={14} /> Export workouts (CSV)
+          </Button>
+          <Button
+            variant="danger"
+            className="w-full justify-start"
+            onClick={handleClearData}
+          >
+            <Trash2 size={14} /> Clear all data
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

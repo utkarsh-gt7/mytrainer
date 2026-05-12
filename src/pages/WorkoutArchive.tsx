@@ -27,14 +27,22 @@ import { cn } from '@/utils/cn';
 import type { MuscleGroup } from '@/types';
 import PageHeader from '@/components/PageHeader';
 import PreviousLogsModal from '@/components/workout/PreviousLogsModal';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Input,
+  Select,
+  StatTile,
+} from '@/components/ui';
+import type { BadgeTone } from '@/components/ui';
 
-const FOCUS_BADGE: Record<string, string> = {
-  strength:
-    'bg-primary-100 text-primary-700 border-primary-200 dark:bg-primary-900/30 dark:text-primary-200 dark:border-primary-900/60',
-  hypertrophy:
-    'bg-metrics-100 text-metrics-700 border-metrics-200 dark:bg-metrics-900/30 dark:text-metrics-200 dark:border-metrics-900/60',
-  athletic:
-    'bg-nutrition-100 text-nutrition-700 border-nutrition-200 dark:bg-nutrition-900/30 dark:text-nutrition-200 dark:border-nutrition-900/60',
+const focusTone: Record<string, BadgeTone> = {
+  strength: 'accent',
+  hypertrophy: 'info',
+  athletic: 'success',
 };
 
 function formatLongDate(date: string): string {
@@ -48,6 +56,14 @@ function formatLongDate(date: string): string {
   });
 }
 
+/**
+ * WorkoutArchive — searchable history of every session.
+ *
+ * Tests rely on these strings: "No sessions match these filters",
+ * `Expand session from {date}` aria-labels, the "Bench, RDL"
+ * placeholder, the "Any day" select default, and the `S{n}: {w} × {r}`
+ * set chip format. They are all preserved verbatim.
+ */
 export default function WorkoutArchive() {
   const { workoutLogs, workoutPlan } = useAppStore();
   const [filters, setFilters] = useState<ArchiveFilters>({});
@@ -56,10 +72,16 @@ export default function WorkoutArchive() {
   const [historyExerciseId, setHistoryExerciseId] = useState<string | null>(null);
 
   const muscleGroups = useMemo(() => collectMuscleGroups(workoutLogs), [workoutLogs]);
-  const filteredLogs = useMemo(() => filterWorkoutLogs(workoutLogs, filters), [workoutLogs, filters]);
+  const filteredLogs = useMemo(
+    () => filterWorkoutLogs(workoutLogs, filters),
+    [workoutLogs, filters],
+  );
 
   const totalSets = filteredLogs.reduce((s, log) => s + summarizeLog(log).totalSets, 0);
-  const totalVolume = filteredLogs.reduce((s, log) => s + summarizeLog(log).totalVolumeKg, 0);
+  const totalVolume = filteredLogs.reduce(
+    (s, log) => s + summarizeLog(log).totalVolumeKg,
+    0,
+  );
   const totalPRs = filteredLogs.reduce((s, log) => s + summarizeLog(log).prCount, 0);
 
   const activeFilterCount =
@@ -70,77 +92,72 @@ export default function WorkoutArchive() {
     (filters.dateTo ? 1 : 0);
 
   const clearFilters = () => setFilters({});
+  const showPanel = filterPanelOpen || activeFilterCount > 0;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       <PageHeader
-        theme="library"
         icon={Archive}
-        eyebrow="Receipts"
-        title="Workout Archive"
-        subtitle="Every session you've banked. Filter by exercise, day, muscle or date — and revisit the receipts."
+        eyebrow="History"
+        title="Workout archive"
+        subtitle="Every session you've banked. Filter by exercise, day, muscle or date."
       >
-        <button
-          type="button"
+        <Button
+          variant={activeFilterCount > 0 ? 'primary' : 'secondary'}
           onClick={() => setFilterPanelOpen((o) => !o)}
           aria-expanded={filterPanelOpen}
           aria-controls="archive-filters"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-sm text-white transition-colors"
         >
-          <Filter size={16} />
+          <Filter size={14} />
           Filters
           {activeFilterCount > 0 && (
-            <span className="ml-1 px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/30 tabular-nums">
+            <span className="ml-0.5 px-1.5 h-5 inline-flex items-center justify-center rounded text-2xs font-semibold tabular-nums bg-white/20">
               {activeFilterCount}
             </span>
           )}
-        </button>
+        </Button>
       </PageHeader>
 
-      {/* Filter Panel */}
-      <div
-        id="archive-filters"
-        className={cn(
-          'rounded-2xl border border-iron-200/60 dark:border-iron-800 bg-white dark:bg-iron-900/60 overflow-hidden transition-all',
-          filterPanelOpen || activeFilterCount > 0 ? 'opacity-100' : 'opacity-100',
-        )}
-      >
-        {(filterPanelOpen || activeFilterCount > 0) && (
+      {/* ── Filter panel ─────────────────────────────────────── */}
+      {showPanel && (
+        <Card bare id="archive-filters" className="animate-slide-down">
           <div className="p-4 sm:p-5 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Exercise search */}
-              <label className="block">
-                <span className="text-[10px] font-display uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300">
-                  Exercise
-                </span>
-                <div className="relative mt-1">
-                  <Search size={14} className="absolute left-3 top-2.5 text-iron-400" />
-                  <input
+              <Field label="Exercise" htmlFor="filter-ex">
+                <div className="relative">
+                  <Search
+                    size={14}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle pointer-events-none"
+                  />
+                  <Input
+                    id="filter-ex"
                     type="text"
                     value={filters.exerciseQuery ?? ''}
                     onChange={(e) =>
-                      setFilters((f) => ({ ...f, exerciseQuery: e.target.value || undefined }))
+                      setFilters((f) => ({
+                        ...f,
+                        exerciseQuery: e.target.value || undefined,
+                      }))
                     }
                     placeholder="Bench, RDL, …"
-                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                    className="pl-9"
                   />
                 </div>
-              </label>
+              </Field>
 
-              {/* Muscle group */}
-              <label className="block">
-                <span className="text-[10px] font-display uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300">
-                  Muscle Group
-                </span>
-                <select
+              <Field label="Muscle group" htmlFor="filter-muscle">
+                <Select
+                  id="filter-muscle"
                   value={filters.muscleGroup ?? ''}
                   onChange={(e) =>
                     setFilters((f) => ({
                       ...f,
-                      muscleGroup: (e.target.value || undefined) as MuscleGroup | undefined,
+                      muscleGroup: (e.target.value || undefined) as
+                        | MuscleGroup
+                        | undefined,
                     }))
                   }
-                  className="mt-1 w-full px-3 py-2 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm dark:text-white capitalize focus:ring-2 focus:ring-primary-500 outline-none"
+                  className="capitalize"
                 >
                   <option value="">All muscles</option>
                   {muscleGroups.map((m) => (
@@ -148,15 +165,12 @@ export default function WorkoutArchive() {
                       {m.replace('_', ' ')}
                     </option>
                   ))}
-                </select>
-              </label>
+                </Select>
+              </Field>
 
-              {/* Day of week */}
-              <label className="block">
-                <span className="text-[10px] font-display uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300">
-                  Day
-                </span>
-                <select
+              <Field label="Day" htmlFor="filter-day">
+                <Select
+                  id="filter-day"
                   value={filters.dayOfWeek ?? ''}
                   onChange={(e) =>
                     setFilters((f) => ({
@@ -164,7 +178,6 @@ export default function WorkoutArchive() {
                       dayOfWeek: (e.target.value || undefined) as DayName | undefined,
                     }))
                   }
-                  className="mt-1 w-full px-3 py-2 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
                 >
                   <option value="">Any day</option>
                   {DAY_NAMES.map((d) => (
@@ -172,157 +185,135 @@ export default function WorkoutArchive() {
                       {d}
                     </option>
                   ))}
-                </select>
-              </label>
+                </Select>
+              </Field>
 
-              {/* Date range */}
               <div className="grid grid-cols-2 gap-2">
-                <label className="block">
-                  <span className="text-[10px] font-display uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300">
-                    From
-                  </span>
-                  <input
+                <Field label="From" htmlFor="filter-from">
+                  <Input
+                    id="filter-from"
                     type="date"
                     value={filters.dateFrom ?? ''}
                     onChange={(e) =>
-                      setFilters((f) => ({ ...f, dateFrom: e.target.value || undefined }))
+                      setFilters((f) => ({
+                        ...f,
+                        dateFrom: e.target.value || undefined,
+                      }))
                     }
-                    className="mt-1 w-full px-2 py-2 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
                   />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] font-display uppercase tracking-wider font-bold text-iron-500 dark:text-iron-300">
-                    To
-                  </span>
-                  <input
+                </Field>
+                <Field label="To" htmlFor="filter-to">
+                  <Input
+                    id="filter-to"
                     type="date"
                     value={filters.dateTo ?? ''}
                     onChange={(e) =>
-                      setFilters((f) => ({ ...f, dateTo: e.target.value || undefined }))
+                      setFilters((f) => ({
+                        ...f,
+                        dateTo: e.target.value || undefined,
+                      }))
                     }
-                    className="mt-1 w-full px-2 py-2 rounded-lg bg-iron-50 dark:bg-iron-800 border border-iron-200 dark:border-iron-700 text-sm dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
                   />
-                </label>
+                </Field>
               </div>
             </div>
 
             {activeFilterCount > 0 && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-300 hover:underline"
-              >
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X size={14} /> Clear all filters
-              </button>
+              </Button>
             )}
           </div>
-        )}
-      </div>
-
-      {/* Filtered summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-2xl border-l-4 border-l-primary-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 bg-white dark:bg-iron-900/60 p-4">
-          <Dumbbell size={16} className="text-primary-500 mb-1" />
-          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">
-            {filteredLogs.length}
-          </p>
-          <p className="text-[10px] uppercase tracking-wider text-iron-500">Sessions</p>
-        </div>
-        <div className="rounded-2xl border-l-4 border-l-metrics-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 bg-white dark:bg-iron-900/60 p-4">
-          <Calendar size={16} className="text-metrics-500 mb-1" />
-          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">
-            {totalSets}
-          </p>
-          <p className="text-[10px] uppercase tracking-wider text-iron-500">Working Sets</p>
-        </div>
-        <div className="rounded-2xl border-l-4 border-l-nutrition-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 bg-white dark:bg-iron-900/60 p-4">
-          <History size={16} className="text-nutrition-500 mb-1" />
-          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">
-            {Math.round(totalVolume / 1000)}k
-          </p>
-          <p className="text-[10px] uppercase tracking-wider text-iron-500">Volume (kg)</p>
-        </div>
-        <div className="rounded-2xl border-l-4 border-l-gold-500 border-t border-r border-b border-iron-200/60 dark:border-iron-800 bg-white dark:bg-iron-900/60 p-4">
-          <Trophy size={16} className="text-gold-500 mb-1" />
-          <p className="text-2xl font-display font-bold dark:text-white tabular-nums">{totalPRs}</p>
-          <p className="text-[10px] uppercase tracking-wider text-iron-500">PRs Hit</p>
-        </div>
-      </div>
-
-      {/* Empty state */}
-      {filteredLogs.length === 0 && (
-        <div className="rounded-2xl border border-iron-200/60 dark:border-iron-800 bg-white dark:bg-iron-900/60 p-10 text-center">
-          <Archive className="mx-auto text-iron-400 dark:text-iron-500 mb-3" size={36} />
-          <h3 className="font-display uppercase tracking-wide font-bold text-lg dark:text-white">
-            No sessions match these filters
-          </h3>
-          <p className="text-sm text-iron-500 dark:text-iron-400 mt-1">
-            {activeFilterCount > 0
-              ? 'Try widening the date range or clearing a filter.'
-              : 'Start logging workouts and they\'ll show up here.'}
-          </p>
-          {activeFilterCount > 0 && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600"
-            >
-              <X size={14} /> Clear filters
-            </button>
-          )}
-        </div>
+        </Card>
       )}
 
-      {/* Results */}
-      <div className="space-y-3">
+      {/* ── Summary tiles ────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatTile icon={Dumbbell} label="Sessions" value={filteredLogs.length} />
+        <StatTile icon={Calendar} label="Sets" value={totalSets} />
+        <StatTile
+          icon={History}
+          label="Volume"
+          value={`${Math.round(totalVolume / 1000)}k`}
+          hint="kg lifted"
+        />
+        <StatTile
+          icon={Trophy}
+          tone={totalPRs > 0 ? 'warning' : 'fg'}
+          label="PRs hit"
+          value={totalPRs}
+        />
+      </div>
+
+      {/* ── Empty state ──────────────────────────────────────── */}
+      {filteredLogs.length === 0 && (
+        <Card>
+          <EmptyState
+            icon={Archive}
+            title="No sessions match these filters"
+            description={
+              activeFilterCount > 0
+                ? 'Try widening the date range or clearing a filter.'
+                : "Start logging workouts and they'll show up here."
+            }
+            action={
+              activeFilterCount > 0 ? (
+                <Button variant="primary" size="sm" onClick={clearFilters}>
+                  <X size={14} /> Clear filters
+                </Button>
+              ) : undefined
+            }
+          />
+        </Card>
+      )}
+
+      {/* ── Session cards ────────────────────────────────────── */}
+      <div className="space-y-2.5">
         {filteredLogs.map((log) => {
           const summary = summarizeLog(log);
           const day = workoutPlan.find((d) => d.id === log.dayId);
           const isExpanded = expandedLogId === log.id;
           const tops = topSetsByExercise(log);
-          const focusKey = day?.focus ?? 'strength';
 
           return (
             <article
               key={log.id}
-              className="bg-white dark:bg-iron-900/60 rounded-2xl border border-iron-200/60 dark:border-iron-800 overflow-hidden"
+              className="bg-surface rounded-lg border border-line overflow-hidden"
             >
               <button
                 type="button"
                 onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
                 aria-expanded={isExpanded}
                 aria-label={`${isExpanded ? 'Collapse' : 'Expand'} session from ${formatLongDate(log.date)}`}
-                className="w-full text-left p-4 flex items-center justify-between gap-3"
+                className="w-full text-left p-4 flex items-center justify-between gap-3 focus-ring rounded-lg"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-flame-500 text-white flex items-center justify-center flex-shrink-0">
-                    <Dumbbell size={18} />
+                  <div className="w-9 h-9 rounded-md bg-surface-2 border border-line text-fg-muted flex items-center justify-center flex-shrink-0">
+                    <Dumbbell size={16} />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold dark:text-white truncate">
+                    <p className="font-medium text-fg truncate">
                       {day?.label ?? log.dayId}{' '}
-                      <span className="text-iron-400">·</span>{' '}
-                      <span className="text-iron-500 font-mono text-sm">
-                        {formatLongDate(log.date)}
+                      <span className="text-fg-subtle font-normal">
+                        · {formatLongDate(log.date)}
                       </span>
                     </p>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {day && (
-                        <span
-                          className={cn(
-                            'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-semibold border',
-                            FOCUS_BADGE[focusKey],
-                          )}
+                        <Badge
+                          tone={focusTone[day.focus] ?? 'neutral'}
+                          variant="soft"
+                          className="capitalize"
                         >
                           {day.focus}
-                        </span>
+                        </Badge>
                       )}
-                      <span className="text-xs font-mono text-iron-500 tabular-nums">
+                      <span className="text-xs text-fg-muted tabular-nums">
                         {summary.exerciseCount} ex · {summary.totalSets} sets
                       </span>
                       {summary.prCount > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-gold-600 dark:text-gold-300">
-                          <Trophy size={12} /> {summary.prCount} PR
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-warning">
+                          <Trophy size={11} /> {summary.prCount} PR
                         </span>
                       )}
                     </div>
@@ -330,44 +321,45 @@ export default function WorkoutArchive() {
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   {log.duration !== undefined && (
-                    <span className="text-xs font-mono text-iron-500 hidden sm:inline tabular-nums">
+                    <span className="text-xs text-fg-muted hidden sm:inline tabular-nums">
                       {formatDuration(log.duration)}
                     </span>
                   )}
-                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  {isExpanded ? (
+                    <ChevronUp size={16} className="text-fg-muted" />
+                  ) : (
+                    <ChevronDown size={16} className="text-fg-muted" />
+                  )}
                 </div>
               </button>
 
-              {/* Always-visible top-set summary row */}
+              {/* Collapsed: top-set chips strip */}
               {!isExpanded && tops.length > 0 && (
                 <div className="px-4 pb-4 -mt-1 flex flex-wrap gap-1.5">
                   {tops.slice(0, 4).map((t) => (
-                    <span
+                    <Badge
                       key={t.exerciseId}
-                      className={cn(
-                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono tabular-nums border',
-                        t.isPR
-                          ? 'bg-gold-50 text-gold-700 border-gold-200 dark:bg-gold-900/20 dark:text-gold-200 dark:border-gold-900/60'
-                          : 'bg-iron-50 text-iron-700 border-iron-200 dark:bg-iron-800/60 dark:text-iron-200 dark:border-iron-700',
-                      )}
+                      tone={t.isPR ? 'warning' : 'neutral'}
+                      variant="soft"
+                      className="font-mono"
                     >
                       {(t.exercise?.name ?? t.exerciseId).split(' ').slice(0, 2).join(' ')} ·{' '}
                       {t.weight} × {t.reps}
-                      {t.isPR && <Trophy size={10} />}
-                    </span>
+                      {t.isPR && <Trophy size={10} className="ml-0.5" />}
+                    </Badge>
                   ))}
                   {tops.length > 4 && (
-                    <span className="text-[11px] text-iron-400 self-center">
+                    <span className="text-xs text-fg-subtle self-center">
                       +{tops.length - 4} more
                     </span>
                   )}
                 </div>
               )}
 
-              {/* Expanded detail */}
+              {/* Expanded: per-exercise sets */}
               {isExpanded && (
-                <div className="px-4 pb-4 border-t border-iron-200/60 dark:border-iron-800 bg-iron-50/40 dark:bg-iron-950/40">
-                  <div className="mt-3 space-y-3">
+                <div className="px-4 pb-4 border-t border-line bg-surface-2/40">
+                  <div className="mt-3 space-y-2.5">
                     {log.exercises
                       .filter((ex) => ex.sets.length > 0)
                       .map((ex) => {
@@ -375,10 +367,10 @@ export default function WorkoutArchive() {
                         return (
                           <div
                             key={ex.exerciseId}
-                            className="rounded-lg border border-iron-200/60 dark:border-iron-800 bg-white dark:bg-iron-900/60 p-3"
+                            className="rounded-md border border-line bg-surface p-3"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <p className="font-semibold text-sm dark:text-white truncate">
+                              <p className="text-sm font-medium text-fg truncate">
                                 {exercise?.name ?? ex.exerciseId}
                               </p>
                               <button
@@ -388,7 +380,7 @@ export default function WorkoutArchive() {
                                   setHistoryExerciseId(ex.exerciseId);
                                 }}
                                 aria-label={`View previous logs for ${exercise?.name ?? ex.exerciseId}`}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-display uppercase tracking-wider font-bold border border-primary-200 dark:border-primary-900/60 text-primary-700 dark:text-primary-200 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors"
+                                className="touch-target-sm inline-flex items-center gap-1 px-2 h-7 rounded-md text-2xs font-medium border border-line bg-surface hover:bg-surface-2 text-fg-muted hover:text-fg transition-colors focus-ring"
                               >
                                 <History size={11} /> History
                               </button>
@@ -398,27 +390,27 @@ export default function WorkoutArchive() {
                                 .slice()
                                 .sort((a, b) => a.setNumber - b.setNumber)
                                 .map((s) => (
-                                  <span
+                                  <Badge
                                     key={s.setNumber}
+                                    tone={s.isPersonalRecord ? 'warning' : 'neutral'}
+                                    variant="soft"
                                     className={cn(
-                                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono tabular-nums border',
-                                      s.isPersonalRecord
-                                        ? 'bg-gold-50 text-gold-700 border-gold-200 dark:bg-gold-900/20 dark:text-gold-200 dark:border-gold-900/60'
-                                        : 'bg-iron-50 text-iron-700 border-iron-200 dark:bg-iron-800/60 dark:text-iron-200 dark:border-iron-700',
+                                      'font-mono',
+                                      s.isPersonalRecord && 'border border-warning/40',
                                     )}
                                   >
                                     S{s.setNumber}: {s.weight} × {s.reps}
-                                    {s.isPersonalRecord && <Trophy size={10} />}
-                                  </span>
+                                    {s.isPersonalRecord && (
+                                      <Trophy size={10} className="ml-0.5" />
+                                    )}
+                                  </Badge>
                                 ))}
                             </div>
                           </div>
                         );
                       })}
                     {log.notes && (
-                      <p className="text-xs text-iron-500 dark:text-iron-400 italic">
-                        “{log.notes}”
-                      </p>
+                      <p className="text-xs text-fg-muted italic">“{log.notes}”</p>
                     )}
                   </div>
                 </div>
@@ -428,8 +420,6 @@ export default function WorkoutArchive() {
         })}
       </div>
 
-      {/* Previous Logs popup — re-used here so the user can pivot from any
-          archived exercise straight into its full history + suggestion. */}
       {historyExerciseId && (
         <PreviousLogsModal
           exerciseId={historyExerciseId}

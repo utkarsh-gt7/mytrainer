@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Play,
   Pause,
@@ -12,7 +12,6 @@ import {
   ArrowDown,
   X,
   Dumbbell,
-  Flame,
   History,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
@@ -22,9 +21,20 @@ import { formatDuration } from '@/utils/calculations';
 import { cn } from '@/utils/cn';
 import PageHeader from '@/components/PageHeader';
 import PreviousLogsModal from '@/components/workout/PreviousLogsModal';
+import { Badge, Button, Card, EmptyState } from '@/components/ui';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+/**
+ * TodayWorkout — the heart of the app. Three modes:
+ *   1. Rest day fallback (no plan for today).
+ *   2. Completed-today summary with edit affordance.
+ *   3. Active session: rest timer, exercise accordion, per-set inputs.
+ *
+ * Test-facing strings are kept stable: "rest day", "start workout",
+ * "edit today's workout", "workout complete", "save changes",
+ * "set N weight/reps", "log set N", "set N logged", "complete workout".
+ */
 export default function TodayWorkout() {
   const {
     workoutPlan,
@@ -42,6 +52,7 @@ export default function TodayWorkout() {
   const todayStr = today.toISOString().split('T')[0];
   const dayName = DAYS[today.getDay()];
   const todayPlan = workoutPlan.find((d) => d.dayName === dayName);
+
   const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -51,18 +62,14 @@ export default function TodayWorkout() {
 
   const activeLog = workoutLogs.find((l) => l.id === activeWorkoutId);
   const completedToday = workoutLogs.find((l) => l.date === todayStr && l.completed);
-  const inProgressToday = workoutLogs.find(
-    (l) => l.date === todayStr && !l.completed,
-  );
+  const inProgressToday = workoutLogs.find((l) => l.date === todayStr && !l.completed);
 
-  // Track the last in-progress workout we auto-resumed so we only do it once per id.
   const resumedRef = useRef<string | null>(null);
 
   /**
-   * Auto-resume an in-progress workout after a page reload. This is the
-   * textbook "initialize local state from an external store on mount" case —
-   * `Date.now()` must run and setState must fire. A ref guard guarantees this
-   * runs exactly once per in-progress workout id.
+   * Auto-resume an in-progress workout after reload. A ref guard
+   * keeps this idempotent per in-progress id even though React may
+   * run effects more than once during dev/StrictMode.
    */
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -119,93 +126,92 @@ export default function TodayWorkout() {
     setIsWorkoutActive(true);
     setIsEditingCompleted(true);
     setElapsed(completedToday.duration ?? 0);
-    setExpandedExercise(completedToday.exercises[0]?.exerciseId ?? todayPlan?.exercises[0]?.exerciseId ?? null);
+    setExpandedExercise(
+      completedToday.exercises[0]?.exerciseId ??
+        todayPlan?.exercises[0]?.exerciseId ??
+        null,
+    );
   };
 
+  // ── Mode 1: Rest day ──────────────────────────────────────────
   if (!todayPlan) {
     return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-5 animate-fade-in">
         <PageHeader
-          theme="workout"
           icon={Dumbbell}
           eyebrow={dayName}
-          title="Rest Day"
-          subtitle="Recovery is part of the program. Prioritize protein, sleep, and a light walk — you earned it."
+          title="Rest day"
+          subtitle="Recovery is part of the program. Prioritise protein, sleep, and a light walk."
         />
-        <div className="rounded-2xl border border-iron-200/60 dark:border-iron-800 bg-white dark:bg-iron-900/60 p-6 text-center">
-          <Flame className="mx-auto text-flame-500 mb-3" size={36} />
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Come back tomorrow — gains are built between sessions.
-          </p>
-        </div>
+        <Card>
+          <EmptyState
+            icon={Dumbbell}
+            title="No session scheduled"
+            description="Come back tomorrow — gains are built between workouts."
+          />
+        </Card>
       </div>
     );
   }
 
+  // ── Mode 2: Completed today ──────────────────────────────────
   if (completedToday && !activeWorkoutId) {
     return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-5 animate-fade-in">
         <PageHeader
-          theme="workout"
           icon={Dumbbell}
-          eyebrow={`${todayPlan.dayName} · ${todayPlan.focus.toUpperCase()}`}
+          eyebrow={`${todayPlan.dayName} · ${todayPlan.focus}`}
           title={todayPlan.label}
-          subtitle="Logged and locked in. Great work."
+          subtitle="Logged and locked in."
         >
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={handleEditCompletedWorkout}
             aria-label="Edit today's workout"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-sm text-white transition-colors"
           >
-            <Pencil size={16} /> Edit Workout
-          </button>
+            <Pencil size={14} /> Edit workout
+          </Button>
         </PageHeader>
 
-        <div className="rounded-2xl border border-nutrition-200 dark:border-nutrition-900/50 bg-gradient-to-br from-nutrition-50 to-white dark:from-nutrition-900/20 dark:to-iron-900/40 p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-nutrition-500 text-white flex items-center justify-center flex-shrink-0">
-            <Check size={24} strokeWidth={3} />
+        <Card className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-md bg-success-100 dark:bg-success-700/20 text-success flex items-center justify-center flex-shrink-0">
+            <Check size={18} strokeWidth={2.5} />
           </div>
           <div className="min-w-0">
-            <p className="font-display uppercase tracking-wide text-lg font-bold text-nutrition-700 dark:text-nutrition-300">
-              Workout Complete
-            </p>
+            <p className="text-sm font-semibold text-fg">Workout complete</p>
             {completedToday.duration && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Time under iron: <span className="font-mono font-semibold">{formatDuration(completedToday.duration)}</span>
+              <p className="text-xs text-fg-muted tabular-nums">
+                Time under iron · {formatDuration(completedToday.duration)}
               </p>
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {completedToday.exercises.map((ex) => {
             const exercise = getExerciseById(ex.exerciseId);
             return (
-              <div
-                key={ex.exerciseId}
-                className="bg-white dark:bg-iron-900/60 rounded-xl border border-iron-200/60 dark:border-iron-800 p-4"
-              >
+              <Card key={ex.exerciseId} className="!p-4">
                 <div className="flex items-center gap-2">
-                  <Dumbbell size={14} className="text-primary-500" />
-                  <p className="font-semibold dark:text-white">{exercise?.name}</p>
+                  <Dumbbell size={14} className="text-fg-muted" />
+                  <p className="text-sm font-semibold text-fg">{exercise?.name}</p>
                 </div>
-                <div className="mt-2 flex gap-2 flex-wrap">
+                <div className="mt-2 flex gap-1.5 flex-wrap">
                   {ex.sets.map((s) => (
-                    <span
+                    <Badge
                       key={s.setNumber}
-                      className={cn(
-                        'px-2.5 py-1 rounded-md text-xs font-mono font-semibold border',
-                        s.isPersonalRecord
-                          ? 'bg-gold-100 dark:bg-gold-900/20 text-gold-800 dark:text-gold-300 border-gold-300 dark:border-gold-800'
-                          : 'bg-iron-50 dark:bg-iron-800/70 text-iron-700 dark:text-iron-200 border-iron-200 dark:border-iron-700',
-                      )}
+                      tone={s.isPersonalRecord ? 'warning' : 'neutral'}
+                      variant="soft"
+                      className="font-mono"
                     >
-                      {s.weight}kg × {s.reps} {s.isPersonalRecord && '🏆'}
-                    </span>
+                      {s.weight}kg × {s.reps}
+                      {s.isPersonalRecord && (
+                        <Trophy size={11} className="ml-0.5" />
+                      )}
+                    </Badge>
                   ))}
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -213,177 +219,206 @@ export default function TodayWorkout() {
     );
   }
 
+  // ── Mode 3: Active session ───────────────────────────────────
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       <PageHeader
-        theme="workout"
         icon={Dumbbell}
-        eyebrow={`${todayPlan.dayName} · ${todayPlan.focus.toUpperCase()}`}
+        eyebrow={`${todayPlan.dayName} · ${todayPlan.focus}`}
         title={todayPlan.label}
-        subtitle={isWorkoutActive ? 'Session in progress — lock every rep in.' : 'Time to move some iron.'}
+        subtitle={
+          isWorkoutActive
+            ? 'Session in progress — lock every rep in.'
+            : 'Ready when you are.'
+        }
       >
         {isWorkoutActive && (
           <div className="text-right">
-            <p className="text-2xl sm:text-3xl font-mono font-bold tracking-tight text-white">{formatDuration(elapsed)}</p>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/70">elapsed</p>
+            <p className="text-2xl font-semibold text-fg tabular-nums leading-none">
+              {formatDuration(elapsed)}
+            </p>
+            <p className="text-2xs uppercase tracking-wider text-fg-subtle mt-1">
+              elapsed
+            </p>
           </div>
         )}
       </PageHeader>
 
-      {/* Rest Timer */}
+      {/* ── Rest Timer ───────────────────────────────────────── */}
       {timer.seconds > 0 && (
-        <div className="relative overflow-hidden rounded-2xl border border-primary-200 dark:border-primary-900/60 bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/20 dark:to-iron-900/50 p-4">
+        <Card className="!p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center">
-                <Timer size={16} />
+              <div className="w-8 h-8 rounded-md bg-surface-2 text-accent flex items-center justify-center">
+                <Timer size={14} />
               </div>
-              <span className="font-display uppercase tracking-wide text-sm font-semibold dark:text-white">
-                Rest Timer
-              </span>
+              <span className="text-sm font-semibold text-fg">Rest timer</span>
             </div>
-            <span className="text-2xl font-mono font-bold text-primary-600 dark:text-primary-300 tabular-nums">
+            <span className="text-xl font-semibold text-fg tabular-nums">
               {formatDuration(timer.seconds)}
             </span>
           </div>
-          <div className="mt-3 h-2 bg-primary-100 dark:bg-iron-800 rounded-full overflow-hidden">
+          <div className="mt-3 h-1.5 bg-surface-2 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-primary-500 to-flame-500 rounded-full transition-all duration-1000"
+              className="h-full bg-accent rounded-full transition-[width] duration-1000 ease-out-quart"
               style={{ width: `${timer.progress}%` }}
             />
           </div>
           <div className="flex gap-2 mt-3">
-            <button
+            <Button
+              variant="primary"
+              className="flex-1"
               onClick={timer.isRunning ? timer.pause : timer.resume}
-              className="flex-1 py-1.5 rounded-lg text-sm font-semibold bg-primary-500 text-white hover:bg-primary-600 shadow-glow-primary"
             >
-              {timer.isRunning ? <Pause size={14} className="inline mr-1" /> : <Play size={14} className="inline mr-1" />}
+              {timer.isRunning ? <Pause size={14} /> : <Play size={14} />}
               {timer.isRunning ? 'Pause' : 'Resume'}
-            </button>
-            <button
-              onClick={timer.reset}
-              className="py-1.5 px-3 rounded-lg text-sm font-medium bg-iron-200 dark:bg-iron-700 hover:bg-iron-300 dark:hover:bg-iron-600 dark:text-white"
-            >
+            </Button>
+            <Button variant="secondary" size="icon" onClick={timer.reset}>
               <RotateCcw size={14} />
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Start Button */}
+      {/* ── Start CTA ────────────────────────────────────────── */}
       {!isWorkoutActive && !activeWorkoutId && (
-        <button
+        <Button
+          variant="primary"
+          size="lg"
+          className="w-full"
           onClick={handleStartWorkout}
-          className="group w-full py-4 rounded-2xl bg-gradient-to-r from-primary-600 via-primary-500 to-flame-500 text-white font-display text-xl uppercase tracking-[0.15em] hover:shadow-glow-primary transition-all flex items-center justify-center gap-3"
         >
-          <Play size={24} strokeWidth={2.5} /> Start Workout
-        </button>
+          <Play size={18} strokeWidth={2.5} /> Start workout
+        </Button>
       )}
 
-      {/* Exercises */}
-      <div className="space-y-3">
+      {/* ── Exercise list ────────────────────────────────────── */}
+      <div className="space-y-2.5">
         {todayPlan.exercises.map((planEx) => {
           const exercise = getExerciseById(planEx.exerciseId);
-          const loggedEx = activeLog?.exercises.find((e) => e.exerciseId === planEx.exerciseId);
+          const loggedEx = activeLog?.exercises.find(
+            (e) => e.exerciseId === planEx.exerciseId,
+          );
           const isExpanded = expandedExercise === planEx.exerciseId;
           const completedSets = loggedEx?.sets.length ?? 0;
           const isDone = completedSets >= planEx.targetSets;
-          const draftsForWorkout = activeWorkoutId ? workoutDrafts[activeWorkoutId] ?? {} : {};
+          const draftsForWorkout = activeWorkoutId
+            ? workoutDrafts[activeWorkoutId] ?? {}
+            : {};
 
           return (
             <div
               key={planEx.id}
               className={cn(
-                'bg-white dark:bg-iron-900/60 rounded-xl border overflow-hidden transition-colors',
-                isDone
-                  ? 'border-nutrition-300 dark:border-nutrition-900/60'
-                  : 'border-iron-200/60 dark:border-iron-800',
+                'bg-surface rounded-lg border overflow-hidden transition-colors',
+                isDone ? 'border-success/40' : 'border-line',
               )}
             >
               <button
-                onClick={() => setExpandedExercise(isExpanded ? null : planEx.exerciseId)}
-                className="w-full p-4 flex items-center justify-between text-left"
+                onClick={() =>
+                  setExpandedExercise(isExpanded ? null : planEx.exerciseId)
+                }
+                className="w-full p-4 flex items-center justify-between text-left focus-ring rounded-lg"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span
                     className={cn(
-                      'w-8 h-8 rounded-lg flex items-center justify-center text-sm font-display font-bold flex-shrink-0 border',
+                      'w-7 h-7 rounded-md flex items-center justify-center text-xs font-semibold flex-shrink-0',
                       isDone
-                        ? 'bg-nutrition-500 text-white border-nutrition-600'
-                        : 'bg-primary-500 text-white border-primary-600',
+                        ? 'bg-success text-white'
+                        : 'bg-surface-2 text-fg border border-line',
                     )}
                   >
                     {planEx.order}
                   </span>
                   <div className="min-w-0">
-                    <p className="font-semibold dark:text-white truncate">{exercise?.name}</p>
-                    <p className="text-xs font-mono text-iron-500 dark:text-iron-300">
+                    <p className="font-medium text-fg truncate">{exercise?.name}</p>
+                    <p className="text-xs text-fg-muted tabular-nums">
                       {planEx.targetSets} × {planEx.targetReps}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {completedSets > 0 && (
-                    <span
-                      className={cn(
-                        'text-xs font-mono font-semibold px-2 py-0.5 rounded-md border',
-                        isDone
-                          ? 'bg-nutrition-100 dark:bg-nutrition-900/30 text-nutrition-700 dark:text-nutrition-300 border-nutrition-300 dark:border-nutrition-800'
-                          : 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-900/60',
-                      )}
+                    <Badge
+                      tone={isDone ? 'success' : 'accent'}
+                      variant="soft"
+                      className="font-mono"
                     >
                       {completedSets}/{planEx.targetSets}
-                    </span>
+                    </Badge>
                   )}
-                  {isDone && <Check size={16} className="text-nutrition-500" />}
-                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  {isDone && <Check size={16} className="text-success" />}
+                  {isExpanded ? (
+                    <ChevronUp size={16} className="text-fg-muted" />
+                  ) : (
+                    <ChevronDown size={16} className="text-fg-muted" />
+                  )}
                 </div>
               </button>
 
               {isExpanded && isWorkoutActive && (
-                <div className="px-3 sm:px-4 pb-4 border-t border-iron-200/60 dark:border-iron-800 bg-iron-50/60 dark:bg-iron-950/40">
+                <div className="px-3 sm:px-4 pb-4 border-t border-line bg-surface-2/40">
                   <div className="mt-3 flex items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-iron-500 dark:text-iron-400">
-                      Working Sets
+                    <span className="text-2xs uppercase tracking-wider font-semibold text-fg-subtle">
+                      Working sets
                     </span>
                     <button
                       type="button"
                       onClick={() => setHistoryExerciseId(planEx.exerciseId)}
                       aria-label={`View previous logs for ${exercise?.name ?? 'this exercise'}`}
                       title="Previous logs · Smart overload"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-display uppercase tracking-wider font-bold border border-primary-200 dark:border-primary-900/60 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-200 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors"
+                      className="touch-target-sm inline-flex items-center gap-1.5 px-2.5 h-7 rounded-md text-xs font-medium border border-line bg-surface hover:bg-surface-2 text-fg-muted hover:text-fg transition-colors focus-ring"
                     >
-                      <History size={14} />
-                      <span>Last Logs</span>
+                      <History size={12} />
+                      Last logs
                     </button>
                   </div>
                   <div className="mt-2 space-y-2">
-                    {Array.from({ length: planEx.targetSets }, (_, i) => i + 1).map((setNum) => {
-                      const logged = loggedEx?.sets.find((s) => s.setNumber === setNum);
-                      const previous = loggedEx?.sets.find((s) => s.setNumber === setNum - 1);
-                      const draftKey = `${planEx.exerciseId}-${setNum}`;
-                      const draft = draftsForWorkout[draftKey];
-                      return (
-                        <SetInput
-                          key={setNum}
-                          setNumber={setNum}
-                          logged={logged}
-                          previous={previous}
-                          draft={draft}
-                          onDraftChange={(weight, reps) => {
-                            if (activeWorkoutId) {
-                              setWorkoutDraft(activeWorkoutId, planEx.exerciseId, setNum, weight, reps);
-                            }
-                          }}
-                          onLog={(weight, reps) => {
-                            if (activeWorkoutId) {
-                              logSet(activeWorkoutId, planEx.exerciseId, setNum, weight, reps);
-                              timer.start(planEx.targetSets <= 6 ? 150 : 90);
-                            }
-                          }}
-                        />
-                      );
-                    })}
+                    {Array.from({ length: planEx.targetSets }, (_, i) => i + 1).map(
+                      (setNum) => {
+                        const logged = loggedEx?.sets.find(
+                          (s) => s.setNumber === setNum,
+                        );
+                        const previous = loggedEx?.sets.find(
+                          (s) => s.setNumber === setNum - 1,
+                        );
+                        const draftKey = `${planEx.exerciseId}-${setNum}`;
+                        const draft = draftsForWorkout[draftKey];
+                        return (
+                          <SetInput
+                            key={setNum}
+                            setNumber={setNum}
+                            logged={logged}
+                            previous={previous}
+                            draft={draft}
+                            onDraftChange={(weight, reps) => {
+                              if (activeWorkoutId) {
+                                setWorkoutDraft(
+                                  activeWorkoutId,
+                                  planEx.exerciseId,
+                                  setNum,
+                                  weight,
+                                  reps,
+                                );
+                              }
+                            }}
+                            onLog={(weight, reps) => {
+                              if (activeWorkoutId) {
+                                logSet(
+                                  activeWorkoutId,
+                                  planEx.exerciseId,
+                                  setNum,
+                                  weight,
+                                  reps,
+                                );
+                                timer.start(planEx.targetSets <= 6 ? 150 : 90);
+                              }
+                            }}
+                          />
+                        );
+                      },
+                    )}
                   </div>
                 </div>
               )}
@@ -392,27 +427,31 @@ export default function TodayWorkout() {
         })}
       </div>
 
-      {/* Previous Logs popup — mounted only when an exercise card has been opened by the user. */}
+      {/* Previous logs popup — mounted only when an exercise card opens it. */}
       {historyExerciseId && (
         <PreviousLogsModal
           exerciseId={historyExerciseId}
           beforeDate={todayStr}
           excludeWorkoutId={activeWorkoutId ?? undefined}
           targetReps={
-            todayPlan.exercises.find((e) => e.exerciseId === historyExerciseId)?.targetReps
+            todayPlan.exercises.find((e) => e.exerciseId === historyExerciseId)
+              ?.targetReps
           }
           onClose={() => setHistoryExerciseId(null)}
         />
       )}
 
-      {/* Complete Button */}
+      {/* ── Complete CTA ─────────────────────────────────────── */}
       {isWorkoutActive && (
-        <button
+        <Button
+          variant="primary"
+          size="lg"
+          className="w-full"
           onClick={handleCompleteWorkout}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-nutrition-600 to-nutrition-500 text-white font-display text-xl uppercase tracking-[0.15em] hover:shadow-glow-nutrition transition-all flex items-center justify-center gap-3"
         >
-          <Check size={24} strokeWidth={2.5} /> {isEditingCompleted ? 'Save Changes' : 'Complete Workout'}
-        </button>
+          <Check size={18} strokeWidth={2.5} />
+          {isEditingCompleted ? 'Save changes' : 'Complete workout'}
+        </Button>
       )}
     </div>
   );
@@ -427,10 +466,29 @@ interface SetInputProps {
   onDraftChange?: (weight: string, reps: string) => void;
 }
 
-export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftChange }: SetInputProps) {
+/**
+ * SetInput — a single inline row for logging one working set.
+ *
+ * Behaviour:
+ *   - Drafts are debounced ~350ms before persisting to the store
+ *     (cheap optimistic UI without spamming Firestore).
+ *   - When values exist in `logged`, the row is read-only; tapping
+ *     the pencil icon opens an inline edit.
+ *   - When the previous set's values are available and this row is
+ *     untouched, a down-arrow button copies them across.
+ */
+export function SetInput({
+  setNumber,
+  logged,
+  previous,
+  draft,
+  onLog,
+  onDraftChange,
+}: SetInputProps) {
   const initialWeight =
     draft?.weight ?? (logged?.weight !== undefined ? logged.weight.toString() : '');
-  const initialReps = draft?.reps ?? (logged?.reps !== undefined ? logged.reps.toString() : '');
+  const initialReps =
+    draft?.reps ?? (logged?.reps !== undefined ? logged.reps.toString() : '');
 
   const [weight, setWeight] = useState(initialWeight);
   const [reps, setReps] = useState(initialReps);
@@ -479,24 +537,23 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
 
   const readOnly = !!logged && !isEditing;
   const canCopyPrevious = !readOnly && !!previous && !weight && !reps;
+  const isPR = !!logged?.isPersonalRecord;
 
   return (
     <div
       className={cn(
-        'flex items-center gap-1.5 sm:gap-2 rounded-lg p-1.5 sm:p-2 transition-colors',
+        'flex items-center gap-1.5 sm:gap-2 rounded-md p-1.5 sm:p-2 transition-colors',
         readOnly
-          ? logged?.isPersonalRecord
-            ? 'bg-gold-50 dark:bg-gold-900/10 border border-gold-200/70 dark:border-gold-900/50'
-            : 'bg-iron-100/70 dark:bg-iron-900/40 border border-iron-200/50 dark:border-iron-800/70'
-          : 'bg-white dark:bg-iron-900/50 border border-iron-200 dark:border-iron-800',
+          ? isPR
+            ? 'bg-warning-100/60 dark:bg-warning-700/10 border border-warning/30'
+            : 'bg-surface-2 border border-line'
+          : 'bg-surface border border-line-strong',
       )}
     >
       <span
         className={cn(
-          'w-8 sm:w-9 text-center font-display uppercase text-xs sm:text-sm font-bold flex-shrink-0 tracking-wider',
-          readOnly
-            ? 'text-iron-500 dark:text-iron-300'
-            : 'text-primary-600 dark:text-primary-300',
+          'w-7 sm:w-9 text-center text-xs sm:text-sm font-semibold flex-shrink-0 tabular-nums',
+          readOnly ? 'text-fg-muted' : 'text-accent',
         )}
       >
         S{setNumber}
@@ -514,10 +571,11 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
           scheduleDraft(v, reps);
         }}
         className={cn(
-          'flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg text-sm font-mono font-semibold tabular-nums border focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-60',
+          'flex-1 min-w-0 px-2 sm:px-3 h-9 rounded-md text-sm font-mono font-semibold tabular-nums border outline-none transition-colors',
+          'focus:border-accent focus:ring-2 focus:ring-accent',
           readOnly
-            ? 'bg-transparent border-transparent text-iron-700 dark:text-iron-100'
-            : 'bg-iron-50 dark:bg-iron-800 border-iron-200 dark:border-iron-700 dark:text-white',
+            ? 'bg-transparent border-transparent text-fg'
+            : 'bg-surface border-line text-fg',
         )}
       />
       <input
@@ -533,10 +591,11 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
           scheduleDraft(weight, v);
         }}
         className={cn(
-          'flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg text-sm font-mono font-semibold tabular-nums border focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-60',
+          'flex-1 min-w-0 px-2 sm:px-3 h-9 rounded-md text-sm font-mono font-semibold tabular-nums border outline-none transition-colors',
+          'focus:border-accent focus:ring-2 focus:ring-accent',
           readOnly
-            ? 'bg-transparent border-transparent text-iron-700 dark:text-iron-100'
-            : 'bg-iron-50 dark:bg-iron-800 border-iron-200 dark:border-iron-700 dark:text-white',
+            ? 'bg-transparent border-transparent text-fg'
+            : 'bg-surface border-line text-fg',
         )}
       />
 
@@ -546,9 +605,9 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
           onClick={copyPrevious}
           aria-label={`Copy values from set ${setNumber - 1}`}
           title={`Copy ${previous?.weight}kg × ${previous?.reps} from S${setNumber - 1}`}
-          className="shrink-0 p-2 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors border border-primary-200/70 dark:border-primary-900/50"
+          className="touch-target-sm shrink-0 h-9 w-9 rounded-md bg-surface-2 text-fg-muted hover:text-fg hover:bg-surface border border-line transition-colors flex items-center justify-center focus-ring"
         >
-          <ArrowDown size={16} />
+          <ArrowDown size={14} />
         </button>
       )}
 
@@ -558,23 +617,22 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
             type="button"
             onClick={() => setIsEditing(true)}
             aria-label={`Edit set ${setNumber}`}
-            className="shrink-0 p-2 rounded-lg bg-iron-200 dark:bg-iron-800 text-iron-700 dark:text-iron-200 hover:bg-iron-300 dark:hover:bg-iron-700 transition-colors"
+            className="touch-target-sm shrink-0 h-9 w-9 rounded-md bg-surface-2 text-fg-muted hover:text-fg hover:bg-surface border border-line transition-colors flex items-center justify-center focus-ring"
           >
-            <Pencil size={16} />
+            <Pencil size={14} />
           </button>
           <button
             type="button"
             disabled
             aria-label={`Set ${setNumber} logged`}
             className={cn(
-              'shrink-0 p-2 rounded-lg flex items-center',
-              logged?.isPersonalRecord
-                ? 'bg-gold-500 text-white shadow-glow-gold'
-                : 'bg-nutrition-500 text-white',
+              'touch-target-sm shrink-0 h-9 w-9 rounded-md flex items-center justify-center',
+              isPR
+                ? 'bg-warning text-white'
+                : 'bg-success text-white',
             )}
           >
-            <Check size={16} strokeWidth={2.5} />
-            {logged?.isPersonalRecord && <Trophy size={12} className="text-white ml-0.5" />}
+            {isPR ? <Trophy size={14} /> : <Check size={14} strokeWidth={2.5} />}
           </button>
         </>
       ) : (
@@ -584,18 +642,18 @@ export function SetInput({ setNumber, logged, previous, draft, onLog, onDraftCha
               type="button"
               onClick={cancelEdit}
               aria-label={`Cancel editing set ${setNumber}`}
-              className="shrink-0 p-2 rounded-lg bg-iron-200 dark:bg-iron-800 text-iron-600 dark:text-iron-300 hover:bg-iron-300 dark:hover:bg-iron-700 transition-colors"
+              className="touch-target-sm shrink-0 h-9 w-9 rounded-md bg-surface-2 text-fg-muted hover:text-fg hover:bg-surface border border-line transition-colors flex items-center justify-center focus-ring"
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           )}
           <button
             type="button"
             onClick={submit}
             aria-label={isEditing ? `Save set ${setNumber}` : `Log set ${setNumber}`}
-            className="shrink-0 p-2 rounded-lg transition-colors bg-primary-500 text-white hover:bg-primary-600 shadow-glow-primary"
+            className="touch-target-sm shrink-0 h-9 w-9 rounded-md bg-accent text-white hover:bg-accent-700 dark:hover:bg-accent-600 transition-colors flex items-center justify-center focus-ring"
           >
-            <Check size={16} strokeWidth={2.5} />
+            <Check size={14} strokeWidth={2.5} />
           </button>
         </>
       )}

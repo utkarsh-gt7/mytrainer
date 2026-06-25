@@ -190,7 +190,7 @@ export default function TodayWorkout() {
         </Card>
 
         <div className="space-y-2.5">
-          {completedToday.exercises.map((ex) => {
+          {completedToday.exercises.filter((ex) => ex.sets.length > 0).map((ex) => {
             const exercise = getExerciseById(ex.exerciseId);
             return (
               <Card key={ex.exerciseId} className="!p-4">

@@ -13,7 +13,7 @@ vi.mock('@/services/firebase', () => ({
 }));
 
 import TodayWorkout from '@/pages/TodayWorkout';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, _resetHydrationGuard } from '@/store/useAppStore';
 import { defaultWorkoutPlan } from '@/data/defaultPlan';
 import { exerciseDatabase } from '@/data/exercises';
 
@@ -39,6 +39,7 @@ const resetStore = () => {
 
 describe('TodayWorkout page', () => {
   beforeEach(() => {
+    _resetHydrationGuard();
     resetStore();
   });
 

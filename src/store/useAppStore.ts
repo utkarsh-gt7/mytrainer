@@ -30,6 +30,21 @@ import { notify } from '@/services/notifier';
 const FIRESTORE_DOC_PATH = 'appState';
 const FIRESTORE_DOC_ID = 'main';
 
+/**
+ * Tracks the workout-log count from the most recent successful Firestore read.
+ *
+ *  -1  → getItem has never run (pre-hydration)
+ *   0  → getItem ran but found no persisted data (new user / empty document)
+ *  N>0 → getItem found N workout logs
+ *
+ * Used by setItem to block writes that would silently zero-out good cloud data
+ * after a transient hydration failure (the root cause of the data-loss incident).
+ */
+let _hydratedLogCount = -1;
+
+/** @internal Resets the write-protection guard. Call in test suite beforeEach only. */
+export function _resetHydrationGuard() { _hydratedLogCount = -1; }
+
 export const firestoreStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     if (!isFirebaseConfigured() || !db) {
@@ -39,8 +54,17 @@ export const firestoreStorage: StateStorage = {
       const snap = await getDoc(doc(db, FIRESTORE_DOC_PATH, FIRESTORE_DOC_ID));
       if (snap.exists()) {
         const data = snap.data();
-        return data[name] ? JSON.stringify(data[name]) : null;
+        if (data[name]) {
+          try {
+            const parsed = data[name] as { state?: { workoutLogs?: unknown[] } };
+            _hydratedLogCount = parsed.state?.workoutLogs?.length ?? 0;
+          } catch {
+            _hydratedLogCount = 0;
+          }
+          return JSON.stringify(data[name]);
+        }
       }
+      _hydratedLogCount = 0;
       return null;
     } catch (err) {
       console.error('Firestore getItem failed:', err);
@@ -51,12 +75,42 @@ export const firestoreStorage: StateStorage = {
     if (!isFirebaseConfigured() || !db) {
       throw new Error('Firebase is not configured. Cloud-only persistence requires Firebase.');
     }
+    // Write-protection guard: if Firestore had N > 0 workout logs at hydration
+    // time, block any write that would reduce the count to 0.  Since this app
+    // has no deleteWorkoutLog action, the only legitimate 0-log state is a
+    // brand-new user — and for them _hydratedLogCount is always 0, so the
+    // guard never fires for them.
+    if (_hydratedLogCount > 0) {
+      try {
+        const payload = JSON.parse(value) as { state?: { workoutLogs?: unknown[] } };
+        if ((payload.state?.workoutLogs?.length ?? 0) === 0) {
+          console.error(
+            `[firestoreStorage] setItem blocked — Firestore had ${_hydratedLogCount} logs ` +
+              `but the incoming write has 0. Aborting to prevent data loss.`,
+          );
+          notify.error(
+            'Data protected',
+            'An unexpected empty-state write was blocked. Reload the app to resync.',
+          );
+          return;
+        }
+      } catch {
+        // Malformed value — fall through and let setDoc handle it
+      }
+    }
     try {
       await setDoc(
         doc(db, FIRESTORE_DOC_PATH, FIRESTORE_DOC_ID),
         { [name]: JSON.parse(value) },
         { merge: true },
       );
+      // Keep _hydratedLogCount current so the guard always reflects the latest
+      // persisted count rather than the snapshot from the initial hydration.
+      try {
+        const payload = JSON.parse(value) as { state?: { workoutLogs?: unknown[] } };
+        const newCount = payload.state?.workoutLogs?.length;
+        if (typeof newCount === 'number') _hydratedLogCount = newCount;
+      } catch { /* ignore — guard update is best-effort */ }
     } catch (err) {
       console.error('Firestore setItem failed:', err);
       notify.error(

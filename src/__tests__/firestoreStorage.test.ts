@@ -30,12 +30,14 @@ vi.mock('@/services/notifier', () => ({
   },
 }));
 
-import { firestoreStorage } from '@/store/useAppStore';
+import { firestoreStorage, _resetHydrationGuard } from '@/store/useAppStore';
+import { notify } from '@/services/notifier';
 
 describe('firestoreStorage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isFirebaseConfigured.mockReturnValue(true);
+    _resetHydrationGuard();
   });
 
   afterEach(() => {
@@ -104,6 +106,59 @@ describe('firestoreStorage', () => {
       await expect(firestoreStorage.setItem('k', '{}')).rejects.toThrow('write failed');
       expect(spy).toHaveBeenCalled();
       spy.mockRestore();
+    });
+  });
+
+  describe('write-protection guard (_hydratedLogCount)', () => {
+    const storageKey = 'fitness-tracker-storage';
+
+    const mockDocWith = (logs: unknown[]) =>
+      mocks.getDoc.mockResolvedValue({
+        exists: () => true,
+        data: () => ({
+          [storageKey]: { state: { workoutLogs: logs } },
+        }),
+      });
+
+    const mockEmptyDoc = () =>
+      mocks.getDoc.mockResolvedValue({ exists: () => false });
+
+    it('does not block when _hydratedLogCount is 0 (new user)', async () => {
+      mockEmptyDoc();
+      await firestoreStorage.getItem(storageKey);
+      await firestoreStorage.setItem(storageKey, JSON.stringify({ state: { workoutLogs: [] } }));
+      expect(mocks.setDoc).toHaveBeenCalled();
+    });
+
+    it('blocks an empty-log write when Firestore had N > 0 logs at hydration', async () => {
+      mockDocWith([{ id: 'a' }, { id: 'b' }]);
+      await firestoreStorage.getItem(storageKey);
+      await firestoreStorage.setItem(storageKey, JSON.stringify({ state: { workoutLogs: [] } }));
+      expect(mocks.setDoc).not.toHaveBeenCalled();
+      expect(notify.error).toHaveBeenCalledWith(
+        'Data protected',
+        expect.stringContaining('blocked'),
+      );
+    });
+
+    it('allows a write that still carries logs when _hydratedLogCount > 0', async () => {
+      mockDocWith([{ id: 'a' }]);
+      await firestoreStorage.getItem(storageKey);
+      const payload = JSON.stringify({ state: { workoutLogs: [{ id: 'a' }, { id: 'b' }] } });
+      await firestoreStorage.setItem(storageKey, payload);
+      expect(mocks.setDoc).toHaveBeenCalled();
+    });
+
+    it('updates the tracked count after a successful write, so a follow-up empty write is also blocked', async () => {
+      mockDocWith([{ id: 'a' }]);
+      await firestoreStorage.getItem(storageKey);
+      await firestoreStorage.setItem(
+        storageKey,
+        JSON.stringify({ state: { workoutLogs: [{ id: 'a' }, { id: 'b' }] } }),
+      );
+      mocks.setDoc.mockClear();
+      await firestoreStorage.setItem(storageKey, JSON.stringify({ state: { workoutLogs: [] } }));
+      expect(mocks.setDoc).not.toHaveBeenCalled();
     });
   });
 

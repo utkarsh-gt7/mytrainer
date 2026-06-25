@@ -11,7 +11,7 @@ vi.mock('@/services/firebase', () => ({
   }),
 }));
 
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, _resetHydrationGuard } from '@/store/useAppStore';
 import { defaultWorkoutPlan } from '@/data/defaultPlan';
 import { exerciseDatabase } from '@/data/exercises';
 
@@ -20,6 +20,7 @@ const cloneExercises = () => JSON.parse(JSON.stringify(exerciseDatabase));
 
 describe('useAppStore', () => {
   beforeEach(() => {
+    _resetHydrationGuard();
     const { setState } = useAppStore;
     setState({
       workoutLogs: [],

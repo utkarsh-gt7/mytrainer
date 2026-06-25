@@ -259,6 +259,64 @@ describe('useAppStore', () => {
       expect(state.find((l) => l.id === b)!.completed).toBe(true);
     });
 
+    it('completeWorkout strips exercises that had no sets logged', () => {
+      const id = useAppStore.getState().startWorkout('monday');
+      useAppStore.getState().logSet(id, 'bb-bench', 1, 80, 8);
+      useAppStore.getState().completeWorkout(id, 3600);
+      const log = useAppStore.getState().workoutLogs.find((l) => l.id === id)!;
+      expect(log.completed).toBe(true);
+      expect(log.exercises.every((ex) => ex.sets.length > 0)).toBe(true);
+    });
+
+    it('completeWorkout keeps exercises that do have sets', () => {
+      const id = useAppStore.getState().startWorkout('monday');
+      useAppStore.getState().logSet(id, 'bb-bench', 1, 80, 8);
+      useAppStore.getState().logSet(id, 'bb-bench', 2, 82.5, 6);
+      useAppStore.getState().completeWorkout(id, 3600);
+      const log = useAppStore.getState().workoutLogs.find((l) => l.id === id)!;
+      const bench = log.exercises.find((e) => e.exerciseId === 'bb-bench');
+      expect(bench).toBeDefined();
+      expect(bench!.sets).toHaveLength(2);
+    });
+
+    it('logSet adds sets to a previously-stripped exercise after reopening', () => {
+      const id = useAppStore.getState().startWorkout('monday');
+      useAppStore.getState().logSet(id, 'bb-bench', 1, 80, 8);
+      useAppStore.getState().completeWorkout(id, 3600);
+      useAppStore.getState().reopenWorkout(id);
+
+      const skippedEx = useAppStore
+        .getState()
+        .workoutLogs.find((l) => l.id === id)!
+        .exercises.find((e) => e.exerciseId !== 'bb-bench' && e.sets.length === 0);
+
+      if (!skippedEx) return;
+
+      useAppStore.getState().logSet(id, skippedEx.exerciseId, 1, 60, 10);
+      const updated = useAppStore
+        .getState()
+        .workoutLogs.find((l) => l.id === id)!
+        .exercises.find((e) => e.exerciseId === skippedEx.exerciseId);
+      expect(updated).toBeDefined();
+      expect(updated!.sets).toHaveLength(1);
+      expect(updated!.sets[0].weight).toBe(60);
+    });
+
+    it('logSet can target a stripped exercise that is absent from log.exercises', () => {
+      const id = useAppStore.getState().startWorkout('monday');
+      useAppStore.getState().logSet(id, 'bb-bench', 1, 80, 8);
+      useAppStore.getState().completeWorkout(id, 3600);
+      useAppStore.getState().reopenWorkout(id);
+
+      useAppStore.getState().logSet(id, 'incline-db-press', 1, 30, 10);
+      const exLog = useAppStore
+        .getState()
+        .workoutLogs.find((l) => l.id === id)!
+        .exercises.find((e) => e.exerciseId === 'incline-db-press');
+      expect(exLog).toBeDefined();
+      expect(exLog!.sets[0].weight).toBe(30);
+    });
+
     it('continues a streak on same-day re-complete', () => {
       const id = useAppStore.getState().startWorkout('monday');
       useAppStore.getState().completeWorkout(id, 1000);

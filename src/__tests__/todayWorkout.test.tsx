@@ -140,6 +140,36 @@ describe('TodayWorkout page', () => {
     expect(useAppStore.getState().workoutLogs[0].completed).toBe(true);
   });
 
+  it('does not render empty exercise cards for skipped exercises in the completed-today summary', () => {
+    const day = useAppStore.getState().workoutPlan.find((d) => d.dayName === todayDayName);
+    if (!day || day.exercises.length < 2) return;
+    const loggedExId = day.exercises[0].exerciseId;
+    const skippedExId = day.exercises[1].exerciseId;
+    const loggedEx = cloneExercises().find((e: { id: string }) => e.id === loggedExId);
+    const skippedEx = cloneExercises().find((e: { id: string }) => e.id === skippedExId);
+    if (!loggedEx?.name || !skippedEx?.name || loggedEx.name === skippedEx.name) return;
+
+    useAppStore.setState({
+      workoutLogs: [
+        {
+          id: 'with-skipped',
+          date: todayStr,
+          dayId: day.id,
+          completed: true,
+          duration: 3600,
+          exercises: [
+            { exerciseId: loggedExId, sets: [{ setNumber: 1, weight: 80, reps: 8 }] },
+            { exerciseId: skippedExId, sets: [] },
+          ],
+        },
+      ],
+    });
+    render(<TodayWorkout />);
+    expect(screen.getByText(/workout complete/i)).toBeInTheDocument();
+    expect(screen.getByText(loggedEx.name)).toBeInTheDocument();
+    expect(screen.queryByText(skippedEx.name)).not.toBeInTheDocument();
+  });
+
   it('auto-resumes an in-progress workout on reload and recovers elapsed time', () => {
     const day = useAppStore.getState().workoutPlan.find((d) => d.dayName === todayDayName);
     if (!day) return;

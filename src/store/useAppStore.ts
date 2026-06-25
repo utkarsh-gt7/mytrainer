@@ -300,9 +300,13 @@ export const useAppStore = create<AppState>()(
             workoutDrafts,
             workoutLogs: s.workoutLogs.map((log) => {
               if (log.id !== workoutId) return log;
+              const hasExercise = log.exercises.some((ex) => ex.exerciseId === exerciseId);
+              const exercises = hasExercise
+                ? log.exercises
+                : [...log.exercises, { exerciseId, sets: [] }];
               return {
                 ...log,
-                exercises: log.exercises.map((ex) => {
+                exercises: exercises.map((ex) => {
                   if (ex.exerciseId !== exerciseId) return ex;
                   const existingIdx = ex.sets.findIndex((s) => s.setNumber === setNumber);
                   const newSet = { setNumber, weight, reps, isPersonalRecord: isNewPR };
@@ -352,7 +356,14 @@ export const useAppStore = create<AppState>()(
             streak: newStreak,
             workoutDrafts,
             workoutLogs: s.workoutLogs.map((log) =>
-              log.id === workoutId ? { ...log, completed: true, duration } : log,
+              log.id === workoutId
+                ? {
+                    ...log,
+                    completed: true,
+                    duration,
+                    exercises: log.exercises.filter((ex) => ex.sets.length > 0),
+                  }
+                : log,
             ),
           };
         });

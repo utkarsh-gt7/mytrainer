@@ -96,8 +96,8 @@ describe('useAppStore', () => {
   });
 
   describe('workout plan', () => {
-    it('has 6 days', () => {
-      expect(useAppStore.getState().workoutPlan.length).toBe(6);
+    it('has 5 days', () => {
+      expect(useAppStore.getState().workoutPlan.length).toBe(5);
     });
 
     it('adds exercise to day', () => {

@@ -30,6 +30,7 @@ export const exerciseDatabase: Exercise[] = [
   { id: 'wide-cable-row', name: 'Wide Grip Cable Row (to chest)', muscleGroups: ['back', 'traps', 'rear_delts'], equipment: 'cable' },
   { id: 'cable-pullover', name: 'Cable Pullovers', muscleGroups: ['back'], equipment: 'cable' },
   { id: 'cable-shrugs', name: 'Cable Shrugs', muscleGroups: ['traps'], equipment: 'cable' },
+  { id: 'db-shrugs', name: 'Dumbbell Shrugs', muscleGroups: ['traps'], equipment: 'dumbbell' },
 
   /* ─── Biceps ─── */
   { id: 'incline-curl', name: 'Incline Curls', muscleGroups: ['biceps'], equipment: 'dumbbell' },

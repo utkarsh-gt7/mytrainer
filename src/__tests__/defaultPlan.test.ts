@@ -3,13 +3,13 @@ import { defaultWorkoutPlan } from '@/data/defaultPlan';
 import { getExerciseById } from '@/data/exercises';
 
 describe('defaultWorkoutPlan', () => {
-  it('has 6 training days', () => {
-    expect(defaultWorkoutPlan.length).toBe(6);
+  it('has 5 training days', () => {
+    expect(defaultWorkoutPlan.length).toBe(5);
   });
 
-  it('covers Monday through Saturday', () => {
+  it('covers Monday, Tuesday, Wednesday, Friday, Saturday', () => {
     const days = defaultWorkoutPlan.map((d) => d.dayName);
-    expect(days).toEqual(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
+    expect(days).toEqual(['Monday', 'Tuesday', 'Wednesday', 'Friday', 'Saturday']);
   });
 
   it('each day has exercises', () => {
@@ -35,31 +35,25 @@ describe('defaultWorkoutPlan', () => {
     });
   });
 
-  it('has Push days on Monday and Thursday', () => {
+  it('has Push day on Monday', () => {
     expect(defaultWorkoutPlan[0].label).toBe('Push');
-    expect(defaultWorkoutPlan[3].label).toBe('Push');
   });
 
-  it('has Pull days on Tuesday and Friday', () => {
+  it('has Pull day on Tuesday', () => {
     expect(defaultWorkoutPlan[1].label).toBe('Pull');
-    expect(defaultWorkoutPlan[4].label).toBe('Pull');
   });
 
-  it('has Leg days on Wednesday and Saturday', () => {
+  it('has Leg day on Wednesday and Lower day on Saturday', () => {
     expect(defaultWorkoutPlan[2].label).toContain('Legs');
-    expect(defaultWorkoutPlan[5].label).toContain('Legs');
+    expect(defaultWorkoutPlan[4].label).toContain('Lower');
   });
 
   it('Monday is strength focus', () => {
     expect(defaultWorkoutPlan[0].focus).toBe('strength');
   });
 
-  it('Thursday is hypertrophy focus', () => {
+  it('Friday is hypertrophy focus', () => {
     expect(defaultWorkoutPlan[3].focus).toBe('hypertrophy');
-  });
-
-  it('Saturday is athletic focus', () => {
-    expect(defaultWorkoutPlan[5].focus).toBe('athletic');
   });
 
   it('each exercise has valid targetSets', () => {
@@ -80,14 +74,11 @@ describe('defaultWorkoutPlan', () => {
     });
   });
 
-  it('logs forearm curls and extensions as separate exercises on pull days', () => {
+  it('logs forearm curls and extensions as separate exercises on Tuesday pull day', () => {
     const tuesday = defaultWorkoutPlan.find((d) => d.id === 'tuesday')!;
-    const friday = defaultWorkoutPlan.find((d) => d.id === 'friday')!;
-    for (const day of [tuesday, friday]) {
-      const ids = day.exercises.map((e) => e.exerciseId);
-      expect(ids).toContain('forearm-curls');
-      expect(ids).toContain('forearm-ext');
-    }
+    const ids = tuesday.exercises.map((e) => e.exerciseId);
+    expect(ids).toContain('forearm-curls');
+    expect(ids).toContain('forearm-ext');
   });
 
   it('does not reference the retired leg-ext-sat id', () => {

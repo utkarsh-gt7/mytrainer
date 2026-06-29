@@ -642,7 +642,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'fitness-tracker-storage',
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => firestoreStorage),
       /** Safely migrate older persisted payloads so missing fields don't crash the app. */
       migrate: (persisted, fromVersion) => {
@@ -673,6 +673,13 @@ export const useAppStore = create<AppState>()(
           if (planSource) {
             migrated.workoutPlan = migrateWorkoutPlanV4(planSource);
           }
+        }
+        if (fromVersion < 5) {
+          /*
+           * v4→v5: transition completely to the scientifically optimized 5-day
+           * split (Push, Pull, Legs, Upper, Lower) with 2-set failure targets.
+           */
+          migrated.workoutPlan = defaultWorkoutPlan;
         }
         return migrated as AppState;
       },

@@ -43,9 +43,9 @@ describe('defaultWorkoutPlan', () => {
     expect(defaultWorkoutPlan[1].label).toBe('Pull');
   });
 
-  it('has Leg day on Wednesday and Lower day on Saturday', () => {
+  it('has leg days on Wednesday and Saturday', () => {
     expect(defaultWorkoutPlan[2].label).toContain('Legs');
-    expect(defaultWorkoutPlan[4].label).toContain('Lower');
+    expect(defaultWorkoutPlan[4].label).toContain('Legs');
   });
 
   it('Monday is strength focus', () => {
@@ -54,6 +54,36 @@ describe('defaultWorkoutPlan', () => {
 
   it('Friday is hypertrophy focus', () => {
     expect(defaultWorkoutPlan[3].focus).toBe('hypertrophy');
+  });
+
+  it('merges Thursday and Friday into a shorter Friday upper workout', () => {
+    const friday = defaultWorkoutPlan.find((d) => d.id === 'friday')!;
+    const exerciseIds = friday.exercises.map((exercise) => exercise.exerciseId);
+    const targetSets = friday.exercises.reduce((total, exercise) => total + exercise.targetSets, 0);
+
+    expect(defaultWorkoutPlan.some((day) => day.id === 'thursday')).toBe(false);
+    expect(friday.label).toBe('Upper');
+    expect(friday.exercises).toHaveLength(17);
+    expect(targetSets).toBe(39);
+    expect(exerciseIds).toEqual([
+      'machine-chest',
+      'lat-pulldown',
+      'db-shoulder',
+      'wide-cable-row',
+      'cable-fly',
+      'cable-pullover',
+      'lateral-machine',
+      'rear-delt-machine',
+      'cable-skull',
+      'bb-curl',
+      'lean-pushdown',
+      'bayesian-curl',
+      'db-shrugs',
+      'hammer-rope',
+      'forearm-curls',
+      'forearm-ext',
+      'neck-curl',
+    ]);
   });
 
   it('each exercise has valid targetSets', () => {

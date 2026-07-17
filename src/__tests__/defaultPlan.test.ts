@@ -63,27 +63,58 @@ describe('defaultWorkoutPlan', () => {
 
     expect(defaultWorkoutPlan.some((day) => day.id === 'thursday')).toBe(false);
     expect(friday.label).toBe('Upper');
-    expect(friday.exercises).toHaveLength(17);
-    expect(targetSets).toBe(39);
+    expect(friday.exercises).toHaveLength(14);
+    expect(targetSets).toBe(32);
     expect(exerciseIds).toEqual([
       'machine-chest',
       'lat-pulldown',
       'db-shoulder',
       'wide-cable-row',
       'cable-fly',
-      'cable-pullover',
       'lateral-machine',
       'rear-delt-machine',
       'cable-skull',
       'bb-curl',
       'lean-pushdown',
-      'bayesian-curl',
       'db-shrugs',
+      'bayesian-curl',
       'hammer-rope',
-      'forearm-curls',
-      'forearm-ext',
       'neck-curl',
     ]);
+  });
+
+  it('keeps Tuesday pull work concise while retaining cable pullovers', () => {
+    const tuesday = defaultWorkoutPlan.find((d) => d.id === 'tuesday')!;
+    const targetSets = tuesday.exercises.reduce((total, exercise) => total + exercise.targetSets, 0);
+
+    expect(tuesday.exercises).toHaveLength(11);
+    expect(targetSets).toBe(27);
+    expect(tuesday.exercises.find((exercise) => exercise.exerciseId === 'cable-pullover')?.targetSets).toBe(2);
+    expect(tuesday.exercises.find((exercise) => exercise.exerciseId === 'face-pull')?.targetSets).toBe(2);
+    expect(tuesday.exercises.find((exercise) => exercise.exerciseId === 'db-shrugs')?.targetSets).toBe(2);
+  });
+
+  it('uses two hard sets for isolation work while retaining compound volume', () => {
+    const dailySets = defaultWorkoutPlan.map((day) =>
+      day.exercises.reduce((total, exercise) => total + exercise.targetSets, 0),
+    );
+    const isolationExerciseIds = new Set([
+      'pec-deck', 'cable-lateral', 'cable-skull', 'cable-pushdown', 'neck-curl',
+      'cable-pullover', 'face-pull', 'db-shrugs', 'incline-curl', 'preacher-curl',
+      'hammer-db', 'forearm-curls', 'forearm-ext', 'leg-ext', 'seated-ham',
+      'cable-crunch', 'hanging-knee', 'pallof-press', 'cable-fly', 'rear-delt-machine',
+      'bb-curl', 'lean-pushdown', 'db-shrugs', 'bayesian-curl', 'hammer-rope', 'lying-ham',
+    ]);
+
+    expect(dailySets).toEqual([21, 27, 23, 32, 23]);
+    expect(defaultWorkoutPlan.flatMap((day) => day.exercises)
+      .filter((exercise) => isolationExerciseIds.has(exercise.exerciseId))
+      .every((exercise) => exercise.targetSets === 2)).toBe(true);
+    expect(defaultWorkoutPlan.flatMap((day) => day.exercises)
+      .filter((exercise) => ['standing-calf', 'seated-calf'].includes(exercise.exerciseId))
+      .every((exercise) => exercise.targetSets === 4)).toBe(true);
+    expect(defaultWorkoutPlan.find((day) => day.id === 'friday')!.exercises
+      .find((exercise) => exercise.exerciseId === 'lateral-machine')?.targetSets).toBe(3);
   });
 
   it('each exercise has valid targetSets', () => {

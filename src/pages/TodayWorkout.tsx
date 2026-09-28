@@ -17,11 +17,12 @@ import {
 import { useAppStore } from '@/store/useAppStore';
 import { getExerciseById } from '@/data/exercises';
 import { useRestTimer } from '@/hooks/useRestTimer';
+import type { WorkoutDay } from '@/types';
 import { formatDuration } from '@/utils/calculations';
 import { cn } from '@/utils/cn';
 import PageHeader from '@/components/PageHeader';
 import PreviousLogsModal from '@/components/workout/PreviousLogsModal';
-import { Badge, Button, Card, EmptyState } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, Field, Select } from '@/components/ui';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -53,6 +54,8 @@ export default function TodayWorkout() {
   const dayName = DAYS[today.getDay()];
   const todayPlan = workoutPlan.find((d) => d.dayName === dayName);
 
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(todayPlan?.id ?? null);
+  const selectedPlan = workoutPlan.find((d) => d.id === selectedDayId);
   const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -61,8 +64,12 @@ export default function TodayWorkout() {
   const [historyExerciseId, setHistoryExerciseId] = useState<string | null>(null);
 
   const activeLog = workoutLogs.find((l) => l.id === activeWorkoutId);
-  const completedToday = workoutLogs.find((l) => l.date === todayStr && l.completed);
-  const inProgressToday = workoutLogs.find((l) => l.date === todayStr && !l.completed);
+  const completedToday = workoutLogs.find(
+    (l) => l.date === todayStr && l.dayId === selectedPlan?.id && l.completed,
+  );
+  const inProgressToday = workoutLogs.find(
+    (l) => l.date === todayStr && l.dayId === selectedPlan?.id && !l.completed,
+  );
 
   const resumedRef = useRef<string | null>(null);
 
@@ -89,10 +96,10 @@ export default function TodayWorkout() {
     }
     setExpandedExercise(
       inProgressToday.exercises[0]?.exerciseId ??
-        todayPlan?.exercises[0]?.exerciseId ??
+        selectedPlan?.exercises[0]?.exerciseId ??
         null,
     );
-  }, [activeWorkoutId, inProgressToday, todayPlan]);
+  }, [activeWorkoutId, inProgressToday, selectedPlan]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
@@ -104,11 +111,11 @@ export default function TodayWorkout() {
   }, [isWorkoutActive]);
 
   const handleStartWorkout = () => {
-    if (!todayPlan) return;
-    const id = startWorkout(todayPlan.id);
+    if (!selectedPlan) return;
+    const id = startWorkout(selectedPlan.id);
     setActiveWorkoutId(id);
     setIsWorkoutActive(true);
-    setExpandedExercise(todayPlan.exercises[0]?.exerciseId ?? null);
+    setExpandedExercise(selectedPlan.exercises[0]?.exerciseId ?? null);
   };
 
   const handleCompleteWorkout = () => {
@@ -128,13 +135,13 @@ export default function TodayWorkout() {
     setElapsed(completedToday.duration ?? 0);
     setExpandedExercise(
       completedToday.exercises[0]?.exerciseId ??
-        todayPlan?.exercises[0]?.exerciseId ??
+        selectedPlan?.exercises[0]?.exerciseId ??
         null,
     );
   };
 
   // ── Mode 1: Rest day ──────────────────────────────────────────
-  if (!todayPlan) {
+  if (!selectedPlan) {
     return (
       <div className="space-y-5 animate-fade-in">
         <PageHeader
@@ -143,6 +150,11 @@ export default function TodayWorkout() {
           eyebrow={dayName}
           title="Rest day"
           subtitle="Recovery is part of the program. Prioritise protein, sleep, and a light walk."
+        />
+        <WorkoutDayPicker
+          workoutPlan={workoutPlan}
+          selectedDayId={selectedDayId}
+          onChange={setSelectedDayId}
         />
         <Card>
           <EmptyState
@@ -162,8 +174,8 @@ export default function TodayWorkout() {
         <PageHeader
           theme="workout"
           icon={Dumbbell}
-          eyebrow={`${todayPlan.dayName} · ${todayPlan.focus}`}
-          title={todayPlan.label}
+          eyebrow={`${selectedPlan.dayName} · ${selectedPlan.focus}`}
+          title={selectedPlan.label}
           subtitle="Logged and locked in."
         >
           <Button
@@ -174,6 +186,12 @@ export default function TodayWorkout() {
             <Pencil size={14} /> Edit workout
           </Button>
         </PageHeader>
+
+        <WorkoutDayPicker
+          workoutPlan={workoutPlan}
+          selectedDayId={selectedDayId}
+          onChange={setSelectedDayId}
+        />
 
         <Card className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-md bg-success-100 dark:bg-success-700/20 text-success flex items-center justify-center flex-shrink-0">
@@ -227,8 +245,8 @@ export default function TodayWorkout() {
       <PageHeader
         theme="workout"
         icon={Dumbbell}
-        eyebrow={`${todayPlan.dayName} · ${todayPlan.focus}`}
-        title={todayPlan.label}
+        eyebrow={`${selectedPlan.dayName} · ${selectedPlan.focus}`}
+        title={selectedPlan.label}
         subtitle={
           isWorkoutActive
             ? 'Session in progress — lock every rep in.'
@@ -246,6 +264,13 @@ export default function TodayWorkout() {
           </div>
         )}
       </PageHeader>
+
+      <WorkoutDayPicker
+        workoutPlan={workoutPlan}
+        selectedDayId={selectedDayId}
+        onChange={setSelectedDayId}
+        disabled={isWorkoutActive || !!activeWorkoutId}
+      />
 
       {/* ── Rest Timer ───────────────────────────────────────── */}
       {timer.seconds > 0 && (
@@ -297,7 +322,7 @@ export default function TodayWorkout() {
 
       {/* ── Exercise list ────────────────────────────────────── */}
       <div className="space-y-2.5">
-        {todayPlan.exercises.map((planEx) => {
+        {selectedPlan.exercises.map((planEx) => {
           const exercise = getExerciseById(planEx.exerciseId);
           const loggedEx = activeLog?.exercises.find(
             (e) => e.exerciseId === planEx.exerciseId,
@@ -437,7 +462,7 @@ export default function TodayWorkout() {
           beforeDate={todayStr}
           excludeWorkoutId={activeWorkoutId ?? undefined}
           targetReps={
-            todayPlan.exercises.find((e) => e.exerciseId === historyExerciseId)
+            selectedPlan.exercises.find((e) => e.exerciseId === historyExerciseId)
               ?.targetReps
           }
           onClose={() => setHistoryExerciseId(null)}
@@ -457,6 +482,45 @@ export default function TodayWorkout() {
         </Button>
       )}
     </div>
+  );
+}
+
+function WorkoutDayPicker({
+  workoutPlan,
+  selectedDayId,
+  onChange,
+  disabled = false,
+}: {
+  workoutPlan: WorkoutDay[];
+  selectedDayId: string | null;
+  onChange: (dayId: string) => void;
+  disabled?: boolean;
+}) {
+  if (workoutPlan.length === 0) return null;
+
+  return (
+    <Card className="!p-4">
+      <Field
+        label="Workout day"
+        htmlFor="workout-day-picker"
+        hint="Choose any scheduled workout to do today."
+      >
+        <Select
+          id="workout-day-picker"
+          aria-label="Workout day"
+          value={selectedDayId ?? ''}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
+        >
+          {!selectedDayId && <option value="">Select a workout day</option>}
+          {workoutPlan.map((day) => (
+            <option key={day.id} value={day.id}>
+              {day.dayName} · {day.label}
+            </option>
+          ))}
+        </Select>
+      </Field>
+    </Card>
   );
 }
 

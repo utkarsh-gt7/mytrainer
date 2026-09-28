@@ -64,6 +64,25 @@ describe('TodayWorkout page', () => {
     }
   });
 
+  it('can choose a different workout day and start that session today', () => {
+    const currentDay = useAppStore.getState().workoutPlan.find((d) => d.dayName === todayDayName);
+    const alternateDay = useAppStore
+      .getState()
+      .workoutPlan.find((d) => d.id !== currentDay?.id);
+    if (!alternateDay) return;
+
+    render(<TodayWorkout />);
+    fireEvent.change(screen.getByLabelText(/workout day/i), {
+      target: { value: alternateDay.id },
+    });
+    expect(screen.getByText(alternateDay.label)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^start workout$/i }));
+    const started = useAppStore.getState().workoutLogs[0];
+    expect(started.dayId).toBe(alternateDay.id);
+    expect(started.date).toBe(todayStr);
+  });
+
   it('renders the saved workout summary with an edit button when completed today', () => {
     const day = useAppStore.getState().workoutPlan.find((d) => d.dayName === todayDayName);
     if (!day) return; // rest day — skip
